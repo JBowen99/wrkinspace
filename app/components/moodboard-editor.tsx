@@ -32,7 +32,11 @@ interface DragState {
   startCanvasY: number;
 }
 
-export default function MoodboardEditor() {
+interface MoodboardEditorProps {
+  pageId: string;
+}
+
+export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
   const [canvasPosition, setCanvasPosition] = useState<CanvasPosition>({
     x: 0,
     y: 0,

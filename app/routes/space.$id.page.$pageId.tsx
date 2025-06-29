@@ -68,7 +68,7 @@ export default function SpacePage() {
   if (currentPage.type === "kanban") {
     return (
       <div className="flex flex-col items-start justify-center h-full w-full">
-        <KanbanEditor />
+        <KanbanEditor pageId={pageId!} />
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default function SpacePage() {
   if (currentPage.type === "moodboard") {
     return (
       <div className="flex flex-col items-start justify-center h-full w-full">
-        <MoodboardEditor />
+        <MoodboardEditor pageId={pageId!} />
       </div>
     );
   }
@@ -84,7 +84,7 @@ export default function SpacePage() {
   if (currentPage.type === "document") {
     return (
       <div className="flex flex-col items-start justify-center h-full w-full">
-        <DocumentEditor />
+        <DocumentEditor pageId={pageId!} />
       </div>
     );
   }

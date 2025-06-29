@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "@netlify/functions": "3.1.2",
     "@platejs/ai": "^49.0.7",
     "@platejs/basic-nodes": "^49.0.0",

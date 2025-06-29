@@ -225,19 +225,28 @@ export async function renamePage(
   error?: string;
 }> {
   try {
-    const { data: page, error } = await supabase
+    const { data: pages, error } = await supabase
       .from('pages')
       .update({ title: newTitle })
       .eq('id', pageId)
       .select()
-      .single()
 
     if (error) {
       console.error('Error renaming page:', error)
       return { page: null, error: error.message }
     }
 
-    return { page }
+    if (!pages || pages.length === 0) {
+      console.error('Page not found or no rows affected:', pageId)
+      return { page: null, error: 'Page not found or could not be updated' }
+    }
+
+    if (pages.length > 1) {
+      console.error('Multiple pages affected by update (unexpected):', pages.length)
+      return { page: null, error: 'Multiple pages affected by update' }
+    }
+
+    return { page: pages[0] }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
     console.error('Error renaming page:', err)
@@ -269,4 +278,224 @@ export async function deletePage(
     console.error('Error deleting page:', err)
     return { success: false, error: errorMessage }
   }
+}
+
+// Load document blocks for a page
+export async function loadDocumentBlocks(pageId: string): Promise<{
+  blocks: Tables<'document_blocks'>[];
+  error?: string;
+}> {
+  try {
+    console.log('Loading document blocks for page:', pageId);
+    
+    const { data: blocks, error } = await supabase
+      .from('document_blocks')
+      .select('id, content, type, order, page_id')
+      .eq('page_id', pageId)
+      .order('order', { ascending: true, nullsFirst: false })
+      .order('id', { ascending: true }) // Secondary sort for consistency
+
+    console.log('Document blocks query result:', { blocks, error });
+
+    if (error) {
+      console.error('Error loading document blocks:', error)
+      return { blocks: [], error: `Failed to load document blocks: ${error.message}` }
+    }
+
+    console.log('Successfully loaded document blocks:', blocks?.length || 0);
+    return { blocks: blocks || [] }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+    console.error('Exception while loading document blocks:', err)
+    return { blocks: [], error: `Exception loading document blocks: ${errorMessage}` }
+  }
+}
+
+// Save document blocks for a page (replaces all existing blocks)
+export async function saveDocumentBlocks(
+  pageId: string, 
+  blocks: any // Plate editor value format
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    console.log('Saving document blocks for page:', pageId, 'blocks data:', blocks);
+    console.log('Blocks type:', typeof blocks, 'Is array:', Array.isArray(blocks));
+    
+    // Ensure blocks is an array
+    let blocksArray: any[];
+    if (Array.isArray(blocks)) {
+      blocksArray = blocks;
+    } else if (blocks && typeof blocks === 'object') {
+      // If it's an object, maybe it has a property with the blocks
+      console.log('Blocks object keys:', Object.keys(blocks));
+      // For now, assume the blocks are the object itself wrapped in an array
+      blocksArray = [blocks];
+    } else {
+      console.log('Unexpected blocks format, using empty array');
+      blocksArray = [];
+    }
+    
+    console.log('Processed blocks array length:', blocksArray.length);
+    
+    // Start a transaction by deleting existing blocks first
+    const { error: deleteError } = await supabase
+      .from('document_blocks')
+      .delete()
+      .eq('page_id', pageId)
+
+    if (deleteError) {
+      console.error('Error deleting existing document blocks:', deleteError)
+      return { success: false, error: `Failed to delete existing blocks: ${deleteError.message}` }
+    }
+
+    // If there are no blocks to save, we're done
+    if (blocksArray.length === 0) {
+      console.log('No blocks to save, deletion completed successfully');
+      return { success: true }
+    }
+
+    // Convert blocks to database format
+    const documentBlocks: TablesInsert<'document_blocks'>[] = blocksArray.map((block, index) => {
+      const plateType = block?.type || 'p';
+      const dbType = mapPlateTypeToDbType(plateType);
+      console.log(`Block ${index}: plateType="${plateType}" -> dbType="${dbType}", full block:`, block);
+      
+      return {
+        page_id: pageId,
+        content: block,
+        type: dbType,
+        order: index + 1
+      };
+    });
+
+    console.log('Prepared document blocks for insertion:', documentBlocks.length);
+    console.log('Document blocks to insert:', documentBlocks);
+
+    // Insert new blocks
+    const { error: insertError } = await supabase
+      .from('document_blocks')
+      .insert(documentBlocks)
+
+    if (insertError) {
+      console.error('Error inserting document blocks:', insertError)
+      return { success: false, error: `Failed to insert blocks: ${insertError.message}` }
+    }
+
+    console.log('Document blocks saved successfully');
+    return { success: true }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+    console.error('Exception while saving document blocks:', err)
+    return { success: false, error: `Exception saving document blocks: ${errorMessage}` }
+  }
+}
+
+// Map Plate editor block types to database types
+function mapPlateTypeToDbType(plateType: string): string {
+  const typeMap: Record<string, string> = {
+    'p': 'paragraph',
+    'h1': 'heading',
+    'h2': 'heading', 
+    'h3': 'heading',
+    'h4': 'heading',
+    'h5': 'heading',
+    'h6': 'heading',
+    'blockquote': 'quote',
+    'hr': 'divider',
+    'ul': 'list',
+    'ol': 'list',
+    'li': 'list_item',
+    'code': 'code',
+    'pre': 'code_block',
+    'img': 'image',
+    'table': 'table',
+    'tr': 'table_row',
+    'td': 'table_cell',
+    'th': 'table_header'
+  };
+  
+  return typeMap[plateType] || 'paragraph';
+}
+
+// Convert database blocks to Plate editor format
+export function convertBlocksToPlateValue(blocks: Tables<'document_blocks'>[]): any[] {
+  console.log('Converting blocks to Plate value:', blocks);
+  
+  if (!blocks || blocks.length === 0) {
+    console.log('No blocks found, returning default structure');
+    // Return default empty document structure
+    return [
+      {
+        children: [{ text: "" }],
+        type: "p",
+      }
+    ];
+  }
+
+  const sortedBlocks = blocks.sort((a, b) => (a.order || 0) - (b.order || 0));
+  console.log('Sorted blocks:', sortedBlocks);
+  
+  const plateValue = sortedBlocks.map((block, index) => {
+    console.log(`Converting block ${index}:`, {
+      id: block.id,
+      type: block.type,
+      order: block.order,
+      content: block.content
+    });
+    
+    const content = block.content as any; // Cast to any for Plate structure
+    
+    // Validate that the content has the expected Plate structure
+    if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
+      if (!content.children || !content.type) {
+        console.warn(`Block ${index} missing required Plate structure:`, content);
+        // Fallback to a basic paragraph if structure is invalid
+        return {
+          children: [{ text: content.text || '' }],
+          type: 'p'
+        };
+      }
+    } else {
+      console.warn(`Block ${index} content is not an object:`, content);
+      return {
+        children: [{ text: '' }],
+        type: 'p'
+      };
+    }
+    
+    return content;
+  });
+  
+  console.log('Final Plate value:', plateValue);
+  console.log('Final Plate value (stringified):', JSON.stringify(plateValue, null, 2));
+  return plateValue;
+}
+
+// Auto-save document blocks with debouncing
+export async function autoSaveDocumentBlocks(
+  pageId: string,
+  blocks: any,
+  debounceMs: number = 2000
+): Promise<void> {
+  // Simple debouncing using setTimeout
+  const key = `autosave_${pageId}`;
+  
+  // Clear existing timeout
+  if ((globalThis as any)[key]) {
+    clearTimeout((globalThis as any)[key]);
+  }
+  
+  // Set new timeout
+  (globalThis as any)[key] = setTimeout(async () => {
+    console.log('Auto-saving document blocks for page:', pageId);
+    const result = await saveDocumentBlocks(pageId, blocks);
+    if (result.error) {
+      console.error('Auto-save failed:', result.error);
+    } else {
+      console.log('Auto-save completed successfully');
+    }
+    delete (globalThis as any)[key];
+  }, debounceMs);
 } 

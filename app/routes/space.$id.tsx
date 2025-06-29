@@ -1,6 +1,6 @@
 import { Outlet, useParams, Link, useLocation } from "react-router";
 import React, { useState } from "react";
-import { SpaceProvider } from "~/contexts/space-context";
+import { SpaceProvider, useSpace } from "~/contexts/space-context";
 import { SpacePasswordScreen } from "~/components/space-password-screen";
 import { Button } from "~/components/ui/button";
 import {
@@ -45,9 +45,17 @@ import {
 import { ShareSpaceModal } from "~/components/ui/share-space-modal";
 import { useSpaceActions } from "~/hooks/use-space-actions";
 
-export default function SpaceRoute() {
-  const params = useParams();
-  const spaceId = params.id;
+function SpaceContent() {
+  const {
+    space,
+    pages,
+    isLoading,
+    error,
+    requiresPassword,
+    isAuthenticated,
+    authenticateSpace,
+  } = useSpace();
+
   const { handleCreatePage, handleRenamePage, handleDeletePage } =
     useSpaceActions();
   const location = useLocation();
@@ -87,213 +95,185 @@ export default function SpaceRoute() {
     }
   };
 
-  if (!spaceId) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen w-full">
         <div className="text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-semibold mb-2">Invalid Space</h2>
-          <p className="text-muted-foreground">No space ID provided.</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading space...</p>
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full">
+        <div className="text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-semibold mb-2">Error</h2>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!space) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔍</div>
+          <h2 className="text-2xl font-semibold mb-2">Space Not Found</h2>
+          <p className="text-muted-foreground">
+            The requested space could not be found.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show password screen if space requires password and user is not authenticated
+  if (requiresPassword && !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen w-full">
+        <SpacePasswordScreen
+          spaceTitle={space.title || undefined}
+          spaceId={space.id}
+          onPasswordSubmit={authenticateSpace}
+          isLoading={isLoading}
+        />
+      </div>
+    );
+  }
+
+  // Show space content if user is authenticated or no password required
   return (
     <>
-      <SpaceProvider initialSpaceId={spaceId}>
-        {({
-          space,
-          isLoading,
-          error,
-          requiresPassword,
-          isAuthenticated,
-          authenticateSpace,
-          pages,
-        }) => {
-          if (isLoading) {
-            return (
-              <div className="flex items-center justify-center h-screen w-full">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading space...</p>
-                </div>
-              </div>
-            );
-          }
-
-          if (error) {
-            return (
-              <div className="flex items-center justify-center h-screen w-full">
-                <div className="text-center">
-                  <div className="text-6xl mb-4">❌</div>
-                  <h2 className="text-2xl font-semibold mb-2">Error</h2>
-                  <p className="text-muted-foreground">{error}</p>
-                </div>
-              </div>
-            );
-          }
-
-          if (!space) {
-            return (
-              <div className="flex items-center justify-center h-screen w-full">
-                <div className="text-center">
-                  <div className="text-6xl mb-4">🔍</div>
-                  <h2 className="text-2xl font-semibold mb-2">
-                    Space Not Found
-                  </h2>
-                  <p className="text-muted-foreground">
-                    The requested space could not be found.
-                  </p>
-                </div>
-              </div>
-            );
-          }
-
-          // Show password screen if space requires password and user is not authenticated
-          if (requiresPassword && !isAuthenticated) {
-            return (
-              <div className="flex items-center justify-center h-screen w-full">
-                <SpacePasswordScreen
-                  spaceTitle={space.title || undefined}
-                  spaceId={space.id}
-                  onPasswordSubmit={authenticateSpace}
-                  isLoading={isLoading}
-                />
-              </div>
-            );
-          }
-
-          // Show space content if user is authenticated or no password required
-          return (
-            <div className="flex h-screen w-full">
-              <Sidebar variant="sidebar">
-                <SidebarHeader>
-                  <div className="flex flex-row items-center justify-start gap-4">
-                    <Link to="/">
-                      <h1 className="text-2xl font-bold">WrkInSpace</h1>
-                    </Link>
-                    <ShareSpaceModal>
-                      <Button variant="outline" size="icon" className="ml-auto">
-                        <QrCode />
-                      </Button>
-                    </ShareSpaceModal>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Space: {space.title || "Untitled"}
-                  </p>
-                  {requiresPassword && (
-                    <div className="flex items-center gap-1 text-xs text-amber-600">
-                      <span>🔒</span>
-                      <span>Password Protected</span>
-                    </div>
-                  )}
-                </SidebarHeader>
-
-                <SidebarContent>
-                  <SidebarGroup>
-                    <SidebarGroupLabel>Pages</SidebarGroupLabel>
-                    <SidebarGroupContent className="space-y-2">
-                      {pages.length === 0 ? (
-                        <p className="text-sm text-muted-foreground p-2">
-                          No pages yet
-                        </p>
-                      ) : (
-                        pages.map((page) => {
-                          const pagePath = `/space/${space.id}/page/${page.id}`;
-                          const isActive = location.pathname === pagePath;
-
-                          return (
-                            <ContextMenu key={page.id}>
-                              <ContextMenuTrigger>
-                                <Button
-                                  variant={isActive ? "secondary" : "ghost"}
-                                  className="w-full justify-start"
-                                  asChild
-                                >
-                                  <Link to={pagePath}>
-                                    <span className="mr-2">
-                                      {page.type === "document" && (
-                                        <FileText className="h-4 w-4" />
-                                      )}
-                                      {page.type === "moodboard" && (
-                                        <Image className="h-4 w-4" />
-                                      )}
-                                      {page.type === "kanban" && (
-                                        <Kanban className="h-4 w-4" />
-                                      )}
-                                    </span>
-                                    {page.title}
-                                  </Link>
-                                </Button>
-                              </ContextMenuTrigger>
-                              <ContextMenuContent>
-                                <ContextMenuItem
-                                  onClick={() => handleRenameStart(page)}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Rename
-                                </ContextMenuItem>
-                                <ContextMenuItem
-                                  variant="destructive"
-                                  onClick={() => handleDeleteClick(page.id)}
-                                >
-                                  <Trash className="h-4 w-4 mr-2" />
-                                  Delete
-                                </ContextMenuItem>
-                              </ContextMenuContent>
-                            </ContextMenu>
-                          );
-                        })
-                      )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="w-full">
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Page
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-48">
-                          <DropdownMenuItem
-                            onClick={() => handleCreatePage("document")}
-                          >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Document
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleCreatePage("moodboard")}
-                          >
-                            <Image className="h-4 w-4 mr-2" />
-                            Mood Board
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleCreatePage("kanban")}
-                          >
-                            <Kanban className="h-4 w-4 mr-2" />
-                            Planning Board
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-                </SidebarContent>
-
-                <SidebarFooter>
-                  <p className="text-xs text-muted-foreground">
-                    Space ID: {space.id}
-                  </p>
-                </SidebarFooter>
-              </Sidebar>
-
-              <SidebarInset>
-                <div className="flex flex-col h-screen w-full">
-                  <Outlet />
-                </div>
-              </SidebarInset>
+      <div className="flex h-screen w-full">
+        <Sidebar variant="sidebar">
+          <SidebarHeader>
+            <div className="flex flex-row items-center justify-start gap-4">
+              <Link to="/">
+                <h1 className="text-2xl font-bold">WrkInSpace</h1>
+              </Link>
+              <ShareSpaceModal>
+                <Button variant="outline" size="icon" className="ml-auto">
+                  <QrCode />
+                </Button>
+              </ShareSpaceModal>
             </div>
-          );
-        }}
-      </SpaceProvider>
+            <p className="text-sm text-muted-foreground">
+              Space: {space.title || "Untitled"}
+            </p>
+            {requiresPassword && (
+              <div className="flex items-center gap-1 text-xs text-amber-600">
+                <span>🔒</span>
+                <span>Password Protected</span>
+              </div>
+            )}
+          </SidebarHeader>
+
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Pages</SidebarGroupLabel>
+              <SidebarGroupContent className="space-y-2">
+                {pages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-2">
+                    No pages yet
+                  </p>
+                ) : (
+                  pages.map((page) => {
+                    const pagePath = `/space/${space.id}/page/${page.id}`;
+                    const isActive = location.pathname === pagePath;
+
+                    return (
+                      <ContextMenu key={page.id}>
+                        <ContextMenuTrigger>
+                          <Button
+                            variant={isActive ? "secondary" : "ghost"}
+                            className="w-full justify-start"
+                            asChild
+                          >
+                            <Link to={pagePath}>
+                              <span className="mr-2">
+                                {page.type === "document" && (
+                                  <FileText className="h-4 w-4" />
+                                )}
+                                {page.type === "moodboard" && (
+                                  <Image className="h-4 w-4" />
+                                )}
+                                {page.type === "kanban" && (
+                                  <Kanban className="h-4 w-4" />
+                                )}
+                              </span>
+                              {page.title}
+                            </Link>
+                          </Button>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent>
+                          <ContextMenuItem
+                            onClick={() => handleRenameStart(page)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Rename
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            variant="destructive"
+                            onClick={() => handleDeleteClick(page.id)}
+                          >
+                            <Trash className="h-4 w-4 mr-2" />
+                            Delete
+                          </ContextMenuItem>
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    );
+                  })
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Page
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    <DropdownMenuItem
+                      onClick={() => handleCreatePage("document")}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Document
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleCreatePage("moodboard")}
+                    >
+                      <Image className="h-4 w-4 mr-2" />
+                      Mood Board
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleCreatePage("kanban")}
+                    >
+                      <Kanban className="h-4 w-4 mr-2" />
+                      Planning Board
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter>
+            <p className="text-xs text-muted-foreground">
+              Space ID: {space.id}
+            </p>
+          </SidebarFooter>
+        </Sidebar>
+
+        <SidebarInset>
+          <div className="flex flex-col h-screen w-full">
+            <Outlet />
+          </div>
+        </SidebarInset>
+      </div>
 
       {/* Rename Dialog */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
@@ -325,5 +305,28 @@ export default function SpaceRoute() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+export default function SpaceRoute() {
+  const params = useParams();
+  const spaceId = params.id;
+
+  if (!spaceId) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-semibold mb-2">Invalid Space</h2>
+          <p className="text-muted-foreground">No space ID provided.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <SpaceProvider initialSpaceId={spaceId}>
+      <SpaceContent />
+    </SpaceProvider>
   );
 }
