@@ -498,4 +498,454 @@ export async function autoSaveDocumentBlocks(
     }
     delete (globalThis as any)[key];
   }, debounceMs);
+}
+
+// Kanban utility functions
+
+// Load kanban data (columns and cards) for a page
+export async function loadKanbanData(pageId: string): Promise<{
+  columns: Array<{
+    id: string;
+    title: string;
+    cards: Array<{
+      id: string;
+      title: string;
+      description?: string;
+    }>;
+  }>;
+  error?: string;
+}> {
+  try {
+    console.log('Loading kanban data for page:', pageId);
+    
+    // Load columns
+    const { data: columns, error: columnsError } = await supabase
+      .from('kanban_columns')
+      .select('id, title, order')
+      .eq('page_id', pageId)
+      .order('order', { ascending: true, nullsFirst: false })
+      .order('title', { ascending: true });
+
+    if (columnsError) {
+      console.error('Error loading kanban columns:', columnsError);
+      return { columns: [], error: `Failed to load columns: ${columnsError.message}` };
+    }
+
+    // Load cards for all columns
+    const { data: cards, error: cardsError } = await supabase
+      .from('kanban_cards')
+      .select('id, content, column_id, order')
+      .in('column_id', columns?.map(col => col.id) || [])
+      .order('order', { ascending: true, nullsFirst: false })
+      .order('id', { ascending: true });
+
+    if (cardsError) {
+      console.error('Error loading kanban cards:', cardsError);
+      return { columns: [], error: `Failed to load cards: ${cardsError.message}` };
+    }
+
+    // Group cards by column and format the response
+    const columnsWithCards = (columns || []).map(column => {
+      const columnCards = (cards || []).filter(card => card.column_id === column.id);
+      return {
+        id: column.id,
+        title: column.title,
+        cards: columnCards.map(card => {
+          // Parse the content JSON to extract title and description
+          let title = 'Untitled';
+          let description: string | undefined;
+          
+          try {
+            if (typeof card.content === 'string') {
+              const parsed = JSON.parse(card.content);
+              title = parsed.title || 'Untitled';
+              description = parsed.description || undefined;
+            } else if (typeof card.content === 'object' && card.content !== null) {
+              title = (card.content as any).title || 'Untitled';
+              description = (card.content as any).description || undefined;
+            }
+          } catch (err) {
+            console.warn('Failed to parse card content:', card.content);
+            title = String(card.content) || 'Untitled';
+          }
+          
+          return {
+            id: card.id,
+            title,
+            description
+          };
+        })
+      };
+    });
+
+    console.log('Successfully loaded kanban data:', columnsWithCards.length, 'columns');
+    return { columns: columnsWithCards };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Exception while loading kanban data:', err);
+    return { columns: [], error: `Exception loading kanban data: ${errorMessage}` };
+  }
+}
+
+// Create a new kanban column
+export async function createKanbanColumn(
+  pageId: string,
+  title: string
+): Promise<{
+  column: Tables<'kanban_columns'> | null;
+  error?: string;
+}> {
+  try {
+    // Get the current max order for this page
+    const { data: existingColumns } = await supabase
+      .from('kanban_columns')
+      .select('order')
+      .eq('page_id', pageId)
+      .order('order', { ascending: false, nullsFirst: false })
+      .limit(1);
+
+    const nextOrder = existingColumns && existingColumns.length > 0 
+      ? (existingColumns[0].order || 0) + 1 
+      : 1;
+
+    const columnData: TablesInsert<'kanban_columns'> = {
+      page_id: pageId,
+      title,
+      order: nextOrder
+    };
+
+    const { data: column, error } = await supabase
+      .from('kanban_columns')
+      .insert(columnData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating kanban column:', error);
+      return { column: null, error: error.message };
+    }
+
+    return { column };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error creating kanban column:', err);
+    return { column: null, error: errorMessage };
+  }
+}
+
+// Create a new kanban card
+export async function createKanbanCard(
+  columnId: string,
+  title: string,
+  description?: string
+): Promise<{
+  card: Tables<'kanban_cards'> | null;
+  error?: string;
+}> {
+  try {
+    // Get the current max order for this column
+    const { data: existingCards } = await supabase
+      .from('kanban_cards')
+      .select('order')
+      .eq('column_id', columnId)
+      .order('order', { ascending: false, nullsFirst: false })
+      .limit(1);
+
+    const nextOrder = existingCards && existingCards.length > 0 
+      ? (existingCards[0].order || 0) + 1 
+      : 1;
+
+    const cardContent = {
+      title,
+      description: description || undefined
+    };
+
+    const cardData: TablesInsert<'kanban_cards'> = {
+      column_id: columnId,
+      content: JSON.stringify(cardContent),
+      order: nextOrder
+    };
+
+    const { data: card, error } = await supabase
+      .from('kanban_cards')
+      .insert(cardData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating kanban card:', error);
+      return { card: null, error: error.message };
+    }
+
+    return { card };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error creating kanban card:', err);
+    return { card: null, error: errorMessage };
+  }
+}
+
+// Update kanban column order after drag and drop
+export async function updateKanbanColumnOrder(
+  columns: Array<{ id: string; order: number }>
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Update all columns in a batch
+    for (const column of columns) {
+      const { error } = await supabase
+        .from('kanban_columns')
+        .update({ order: column.order })
+        .eq('id', column.id);
+
+      if (error) {
+        console.error('Error updating column order:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error updating kanban column order:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Update kanban card (including moving between columns)
+export async function updateKanbanCard(
+  cardId: string,
+  updates: {
+    columnId?: string;
+    order?: number;
+    title?: string;
+    description?: string;
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const updateData: any = {};
+    
+    if (updates.columnId !== undefined) {
+      updateData.column_id = updates.columnId;
+    }
+    
+    if (updates.order !== undefined) {
+      updateData.order = updates.order;
+    }
+    
+    if (updates.title !== undefined || updates.description !== undefined) {
+      // Get current content first if we're only updating title or description
+      const { data: currentCard, error: fetchError } = await supabase
+        .from('kanban_cards')
+        .select('content')
+        .eq('id', cardId)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching current card content:', fetchError);
+        return { success: false, error: fetchError.message };
+      }
+      
+      let currentContent = { title: '', description: undefined };
+      try {
+        if (typeof currentCard.content === 'string') {
+          currentContent = JSON.parse(currentCard.content);
+        } else if (typeof currentCard.content === 'object' && currentCard.content !== null) {
+          currentContent = currentCard.content as any;
+        }
+      } catch (err) {
+        console.warn('Failed to parse current card content:', currentCard.content);
+      }
+      
+      const newContent = {
+        title: updates.title !== undefined ? updates.title : currentContent.title,
+        description: updates.description !== undefined ? updates.description : currentContent.description
+      };
+      
+      updateData.content = JSON.stringify(newContent);
+    }
+
+    const { error } = await supabase
+      .from('kanban_cards')
+      .update(updateData)
+      .eq('id', cardId);
+
+    if (error) {
+      console.error('Error updating kanban card:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error updating kanban card:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Update multiple cards' order (for reordering within column or moving between columns)
+export async function updateKanbanCardsOrder(
+  cards: Array<{ id: string; columnId: string; order: number }>
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Update all cards in a batch
+    for (const card of cards) {
+      const { error } = await supabase
+        .from('kanban_cards')
+        .update({ 
+          column_id: card.columnId,
+          order: card.order 
+        })
+        .eq('id', card.id);
+
+      if (error) {
+        console.error('Error updating card order:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error updating kanban cards order:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Edit an existing kanban card
+export async function editKanbanCard(
+  cardId: string,
+  title: string,
+  description?: string
+): Promise<{
+  card: Tables<'kanban_cards'> | null;
+  error?: string;
+}> {
+  try {
+    const cardContent = {
+      title,
+      description: description || undefined
+    };
+
+    const { data: card, error } = await supabase
+      .from('kanban_cards')
+      .update({ content: JSON.stringify(cardContent) })
+      .eq('id', cardId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error editing kanban card:', error);
+      return { card: null, error: error.message };
+    }
+
+    return { card };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error editing kanban card:', err);
+    return { card: null, error: errorMessage };
+  }
+}
+
+// Delete a kanban card
+export async function deleteKanbanCard(
+  cardId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { error } = await supabase
+      .from('kanban_cards')
+      .delete()
+      .eq('id', cardId);
+
+    if (error) {
+      console.error('Error deleting kanban card:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log('Successfully deleted kanban card');
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error deleting kanban card:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Edit an existing kanban column
+export async function editKanbanColumn(
+  columnId: string,
+  title: string
+): Promise<{
+  column: Tables<'kanban_columns'> | null;
+  error?: string;
+}> {
+  try {
+    const { data: column, error } = await supabase
+      .from('kanban_columns')
+      .update({ title })
+      .eq('id', columnId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error editing kanban column:', error);
+      return { column: null, error: error.message };
+    }
+
+    return { column };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error editing kanban column:', err);
+    return { column: null, error: errorMessage };
+  }
+}
+
+// Delete a kanban column and all its cards
+export async function deleteKanbanColumn(
+  columnId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // First, delete all cards in the column
+    const { error: cardsError } = await supabase
+      .from('kanban_cards')
+      .delete()
+      .eq('column_id', columnId);
+
+    if (cardsError) {
+      console.error('Error deleting cards from column:', cardsError);
+      return { success: false, error: `Failed to delete cards: ${cardsError.message}` };
+    }
+
+    // Then, delete the column itself
+    const { error: columnError } = await supabase
+      .from('kanban_columns')
+      .delete()
+      .eq('id', columnId);
+
+    if (columnError) {
+      console.error('Error deleting kanban column:', columnError);
+      return { success: false, error: `Failed to delete column: ${columnError.message}` };
+    }
+
+    console.log('Successfully deleted column and its cards');
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error deleting kanban column:', err);
+    return { success: false, error: errorMessage };
+  }
 } 
