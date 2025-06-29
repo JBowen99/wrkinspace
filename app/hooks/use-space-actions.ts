@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import { useNavigate } from 'react-router'
 import { createSpace } from '~/lib/space-utils'
-import { useSpace } from "~/contexts/space-context";
+import { SpaceContext } from "~/contexts/space-context";
 
 export function useSpaceActions() {
   const [isCreating, setIsCreating] = useState(false)
   const navigate = useNavigate()
-  const { createPage, pages } = useSpace();
+  
+  // Conditionally use space context - only if we're inside a SpaceProvider
+  const spaceContext = useContext(SpaceContext);
 
   console.log('useSpaceActions hook initialized')
 
@@ -69,6 +71,14 @@ export function useSpaceActions() {
   const handleCreatePage = async (
     type: "document" | "moodboard" | "kanban"
   ) => {
+    // Only allow page creation if we have space context
+    if (!spaceContext) {
+      console.error('Cannot create page: not within a space context');
+      return false;
+    }
+
+    const { createPage, pages } = spaceContext;
+
     const typeNames = {
       document: "Document",
       moodboard: "Mood Board",
@@ -76,7 +86,7 @@ export function useSpaceActions() {
     };
 
     const title = `${typeNames[type]} ${
-      pages.filter((p) => p.type === type).length + 1
+      pages.filter((p: any) => p.type === type).length + 1
     }`;
 
     const success = await createPage(title, type);
@@ -87,10 +97,49 @@ export function useSpaceActions() {
     return success;
   };
 
+  const handleRenamePage = async (pageId: string, newTitle: string) => {
+    if (!spaceContext) {
+      console.error('Cannot rename page: not within a space context');
+      return false;
+    }
+
+    const { renamePage } = spaceContext;
+    
+    if (!newTitle.trim()) {
+      console.error('Cannot rename page: title cannot be empty');
+      return false;
+    }
+
+    const success = await renamePage(pageId, newTitle.trim());
+    if (success) {
+      console.log('Page renamed successfully');
+    }
+    
+    return success;
+  };
+
+  const handleDeletePage = async (pageId: string) => {
+    if (!spaceContext) {
+      console.error('Cannot delete page: not within a space context');
+      return false;
+    }
+
+    const { deletePage } = spaceContext;
+    
+    const success = await deletePage(pageId);
+    if (success) {
+      console.log('Page deleted successfully');
+    }
+    
+    return success;
+  };
+
   return {
     isCreating,
     handleCreateSpace,
     handleJoinSpace,
-    handleCreatePage
+    handleCreatePage,
+    handleRenamePage,
+    handleDeletePage
   }
 } 

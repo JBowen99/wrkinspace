@@ -5,6 +5,8 @@ import {
   joinSpace,
   loadPagesForSpace,
   createPage as createPageUtil,
+  renamePage as renamePageUtil,
+  deletePage as deletePageUtil,
 } from "~/lib/space-utils";
 
 type Space = Tables<"spaces">;
@@ -24,10 +26,14 @@ interface SpaceContextType {
     title: string,
     type: "document" | "moodboard" | "kanban"
   ) => Promise<boolean>;
+  renamePage: (pageId: string, newTitle: string) => Promise<boolean>;
+  deletePage: (pageId: string) => Promise<boolean>;
   loadPages: () => Promise<void>;
 }
 
 const SpaceContext = createContext<SpaceContextType | undefined>(undefined);
+
+export { SpaceContext };
 
 // Helper to manage authenticated spaces in localStorage
 const getAuthenticatedSpaces = (): Set<string> => {
@@ -120,6 +126,57 @@ export function SpaceProvider({
       const errorMessage =
         err instanceof Error ? err.message : "Failed to create page";
       console.error("Error creating page:", err);
+      setError(errorMessage);
+      return false;
+    }
+  };
+
+  const renamePage = async (
+    pageId: string,
+    newTitle: string
+  ): Promise<boolean> => {
+    try {
+      const result = await renamePageUtil(pageId, newTitle);
+      if (result.error || !result.page) {
+        console.error("Error renaming page:", result.error);
+        setError(result.error || "Failed to rename page");
+        return false;
+      }
+
+      // Update the page in the pages state
+      setPages((prevPages) =>
+        prevPages.map((page) =>
+          page.id === pageId ? { ...page, title: newTitle } : page
+        )
+      );
+      console.log("Page renamed successfully:", result.page);
+      return true;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to rename page";
+      console.error("Error renaming page:", err);
+      setError(errorMessage);
+      return false;
+    }
+  };
+
+  const deletePage = async (pageId: string): Promise<boolean> => {
+    try {
+      const result = await deletePageUtil(pageId);
+      if (!result.success) {
+        console.error("Error deleting page:", result.error);
+        setError(result.error || "Failed to delete page");
+        return false;
+      }
+
+      // Remove the page from the pages state
+      setPages((prevPages) => prevPages.filter((page) => page.id !== pageId));
+      console.log("Page deleted successfully");
+      return true;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete page";
+      console.error("Error deleting page:", err);
       setError(errorMessage);
       return false;
     }
@@ -249,6 +306,8 @@ export function SpaceProvider({
     authenticateSpace,
     clearSpace,
     createPage,
+    renamePage,
+    deletePage,
     loadPages,
   };
 

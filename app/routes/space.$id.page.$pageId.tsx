@@ -1,6 +1,9 @@
 import { useParams } from "react-router";
 import { useSpace } from "~/contexts/space-context";
 import { FileText, Image, Kanban } from "lucide-react";
+import DocumentEditor from "~/components/document-editor";
+import MoodboardEditor from "~/components/moodboard-editor";
+import KanbanEditor from "~/components/kanban-editor";
 
 export default function SpacePage() {
   const params = useParams();
@@ -61,6 +64,30 @@ export default function SpacePage() {
         return "Unknown Page Type";
     }
   };
+
+  if (currentPage.type === "kanban") {
+    return (
+      <div className="flex flex-col items-start justify-center h-full w-full">
+        <KanbanEditor />
+      </div>
+    );
+  }
+
+  if (currentPage.type === "moodboard") {
+    return (
+      <div className="flex flex-col items-start justify-center h-full w-full">
+        <MoodboardEditor />
+      </div>
+    );
+  }
+
+  if (currentPage.type === "document") {
+    return (
+      <div className="flex flex-col items-start justify-center h-full w-full">
+        <DocumentEditor />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center h-full">

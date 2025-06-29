@@ -214,4 +214,59 @@ export async function createPage(
     console.error('Error creating page:', err)
     return { page: null, error: errorMessage }
   }
+}
+
+// Rename a page
+export async function renamePage(
+  pageId: string,
+  newTitle: string
+): Promise<{
+  page: Tables<'pages'> | null;
+  error?: string;
+}> {
+  try {
+    const { data: page, error } = await supabase
+      .from('pages')
+      .update({ title: newTitle })
+      .eq('id', pageId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error renaming page:', error)
+      return { page: null, error: error.message }
+    }
+
+    return { page }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+    console.error('Error renaming page:', err)
+    return { page: null, error: errorMessage }
+  }
+}
+
+// Delete a page
+export async function deletePage(
+  pageId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { error } = await supabase
+      .from('pages')
+      .delete()
+      .eq('id', pageId)
+
+    if (error) {
+      console.error('Error deleting page:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+    console.error('Error deleting page:', err)
+    return { success: false, error: errorMessage }
+  }
 } 
