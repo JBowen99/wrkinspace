@@ -7,6 +7,8 @@ export function ThemeToggle() {
 
   React.useEffect(() => {
     // Check for saved theme preference or default to light mode
+    if (typeof window === "undefined") return;
+
     const savedTheme = localStorage.getItem("theme");
     const prefersDark = window.matchMedia(
       "(prefers-color-scheme: dark)"
@@ -22,6 +24,8 @@ export function ThemeToggle() {
   }, []);
 
   const toggleTheme = () => {
+    if (typeof window === "undefined") return;
+
     const newTheme = !isDark;
     setIsDark(newTheme);
 

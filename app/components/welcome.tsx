@@ -1,19 +1,8 @@
 import { Button } from "./ui/button";
-import { useSpaceActions } from "~/hooks/use-space-actions";
+import { JoinSpaceModal } from "./ui/join-space-modal";
+import { CreateSpaceModal } from "./ui/create-space-modal";
 
 export default function Welcome() {
-  const { isCreating, handleCreateSpace, handleJoinSpace } = useSpaceActions();
-
-  const onCreateClick = () => {
-    console.log("Create Space button clicked!");
-    handleCreateSpace();
-  };
-
-  const onJoinClick = () => {
-    console.log("Join Space button clicked!");
-    handleJoinSpace();
-  };
-
   return (
     <div className="flex flex-col items-center justify-center w-full h-full gap-4">
       <h1 className="text-4xl font-bold">Welcome to WrkInSpace</h1>
@@ -23,12 +12,12 @@ export default function Welcome() {
       </p>
 
       <div className="flex items-center justify-center mt-2 gap-4">
-        <Button onClick={onCreateClick} disabled={isCreating}>
-          {isCreating ? "Creating..." : "Create Space"}
-        </Button>
-        <Button variant="outline" onClick={onJoinClick}>
-          Join Space
-        </Button>
+        <CreateSpaceModal>
+          <Button>Create Space</Button>
+        </CreateSpaceModal>
+        <JoinSpaceModal>
+          <Button variant="outline">Join Space</Button>
+        </JoinSpaceModal>
       </div>
     </div>
   );

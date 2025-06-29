@@ -13,6 +13,7 @@
     "@platejs/ai": "^49.0.7",
     "@platejs/basic-nodes": "^49.0.0",
     "@platejs/dnd": "^49.0.8",
+    "@platejs/markdown": "^49.0.12",
     "@platejs/media": "^49.0.0",
     "@platejs/selection": "^49.0.7",
     "@radix-ui/react-context-menu": "^2.2.15",
@@ -37,7 +38,10 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^19.1.0",
+    "react-qr-code": "^2.0.16",
     "react-router": "^7.5.3",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "supabase": "^2.26.9",
     "tailwind-merge": "^3.3.1",
     "tailwind-scrollbar-hide": "^4.0.0"

@@ -1,195 +1,50 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-} from "react";
-import { useParams } from "react-router";
-import { supabase } from "~/lib/supabase";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import type { Tables } from "../../database.types";
+import {
+  checkSpaceRequirements,
+  joinSpace,
+  loadPagesForSpace,
+  createPage as createPageUtil,
+} from "~/lib/space-utils";
 
-// Types
 type Space = Tables<"spaces">;
 type Page = Tables<"pages">;
-type Participant = Tables<"participants">;
-
-interface SpaceData {
-  space: Space | null;
-  pages: Page[];
-  participants: Participant[];
-}
 
 interface SpaceContextType {
-  spaceData: SpaceData;
-  loading: boolean;
+  space: Space | null;
+  pages: Page[];
+  isLoading: boolean;
   error: string | null;
-  refetchSpace: () => Promise<void>;
-  currentSpaceId: string | null;
+  requiresPassword: boolean;
+  isAuthenticated: boolean;
+  loadSpace: (spaceId: string) => Promise<void>;
+  authenticateSpace: (password: string) => Promise<boolean>;
+  clearSpace: () => void;
+  createPage: (
+    title: string,
+    type: "document" | "moodboard" | "kanban"
+  ) => Promise<boolean>;
+  loadPages: () => Promise<void>;
 }
 
-// Context
 const SpaceContext = createContext<SpaceContextType | undefined>(undefined);
 
-// Provider Props
-interface SpaceProviderProps {
-  children: React.ReactNode;
-}
+// Helper to manage authenticated spaces in localStorage
+const getAuthenticatedSpaces = (): Set<string> => {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const stored = localStorage.getItem("wrkinspace_authenticated");
+    return new Set(stored ? JSON.parse(stored) : []);
+  } catch {
+    return new Set();
+  }
+};
 
-// Provider Component
-export function SpaceProvider({ children }: SpaceProviderProps) {
-  const { id: spaceId } = useParams();
-  const [spaceData, setSpaceData] = useState<SpaceData>({
-    space: null,
-    pages: [],
-    participants: [],
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const saveAuthenticatedSpaces = (spaces: Set<string>) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("wrkinspace_authenticated", JSON.stringify([...spaces]));
+};
 
-  // Function to load space data
-  const loadSpaceData = useCallback(async (id: string) => {
-    if (!id) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Load space
-      const { data: space, error: spaceError } = await supabase
-        .from("spaces")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (spaceError) {
-        throw new Error(`Failed to load space: ${spaceError.message}`);
-      }
-
-      // Load pages for this space
-      const { data: pages, error: pagesError } = await supabase
-        .from("pages")
-        .select("*")
-        .eq("space_id", id)
-        .order("order", { ascending: true });
-
-      if (pagesError) {
-        throw new Error(`Failed to load pages: ${pagesError.message}`);
-      }
-
-      // Load participants for this space
-      const { data: participants, error: participantsError } = await supabase
-        .from("participants")
-        .select("*")
-        .eq("space_id", id);
-
-      if (participantsError) {
-        throw new Error(
-          `Failed to load participants: ${participantsError.message}`
-        );
-      }
-
-      setSpaceData({
-        space,
-        pages: pages || [],
-        participants: participants || [],
-      });
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unknown error occurred";
-      setError(errorMessage);
-      console.error("Error loading space data:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Function to refetch space data
-  const refetchSpace = useCallback(async () => {
-    if (spaceId) {
-      await loadSpaceData(spaceId);
-    }
-  }, [spaceId, loadSpaceData]);
-
-  // Effect to load space data when spaceId changes
-  useEffect(() => {
-    if (spaceId) {
-      loadSpaceData(spaceId);
-    } else {
-      // Reset state when there's no spaceId
-      setSpaceData({
-        space: null,
-        pages: [],
-        participants: [],
-      });
-      setError(null);
-      setLoading(false);
-    }
-  }, [spaceId, loadSpaceData]);
-
-  // Set up real-time subscriptions for space updates
-  useEffect(() => {
-    if (!spaceId) return;
-
-    // Subscribe to pages changes
-    const pagesSubscription = supabase
-      .channel(`pages_${spaceId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "pages",
-          filter: `space_id=eq.${spaceId}`,
-        },
-        () => {
-          // Refetch pages when changes occur
-          refetchSpace();
-        }
-      )
-      .subscribe();
-
-    // Subscribe to participants changes
-    const participantsSubscription = supabase
-      .channel(`participants_${spaceId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "participants",
-          filter: `space_id=eq.${spaceId}`,
-        },
-        () => {
-          // Refetch participants when changes occur
-          refetchSpace();
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions
-    return () => {
-      pagesSubscription.unsubscribe();
-      participantsSubscription.unsubscribe();
-    };
-  }, [spaceId, refetchSpace]);
-
-  const contextValue: SpaceContextType = {
-    spaceData,
-    loading,
-    error,
-    refetchSpace,
-    currentSpaceId: spaceId || null,
-  };
-
-  return (
-    <SpaceContext.Provider value={contextValue}>
-      {children}
-    </SpaceContext.Provider>
-  );
-}
-
-// Custom hook to use the space context
 export function useSpace() {
   const context = useContext(SpaceContext);
   if (context === undefined) {
@@ -198,23 +53,208 @@ export function useSpace() {
   return context;
 }
 
-// Hook for accessing individual parts of space data
-export function useSpaceData() {
-  const { spaceData } = useSpace();
-  return spaceData;
+interface SpaceProviderProps {
+  children: React.ReactNode | ((context: SpaceContextType) => React.ReactNode);
+  initialSpaceId?: string;
 }
 
-export function useSpacePages() {
-  const { spaceData } = useSpace();
-  return spaceData.pages;
-}
+export function SpaceProvider({
+  children,
+  initialSpaceId,
+}: SpaceProviderProps) {
+  const [space, setSpace] = useState<Space | null>(null);
+  const [pages, setPages] = useState<Page[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [requiresPassword, setRequiresPassword] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-export function useSpaceParticipants() {
-  const { spaceData } = useSpace();
-  return spaceData.participants;
-}
+  const loadPages = async () => {
+    if (!space) return;
 
-export function useCurrentSpace() {
-  const { spaceData } = useSpace();
-  return spaceData.space;
+    try {
+      console.log("Loading pages for space:", space.id);
+      const result = await loadPagesForSpace(space.id);
+
+      if (result.error) {
+        console.error("Error loading pages:", result.error);
+        // Don't set error state for page loading issues - just log them
+        // This prevents the UI from breaking due to RLS policy issues
+        setPages([]); // Set empty array instead
+        return;
+      }
+
+      setPages(result.pages);
+      console.log("Pages loaded successfully:", result.pages.length);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load pages";
+      console.error("Exception loading pages:", err);
+      // Don't set error state for page loading issues - just log them
+      setPages([]); // Set empty array instead
+    }
+  };
+
+  const createPage = async (
+    title: string,
+    type: "document" | "moodboard" | "kanban"
+  ): Promise<boolean> => {
+    if (!space) {
+      console.error("No space available for creating page");
+      return false;
+    }
+
+    try {
+      const result = await createPageUtil(space.id, title, type);
+      if (result.error || !result.page) {
+        console.error("Error creating page:", result.error);
+        setError(result.error || "Failed to create page");
+        return false;
+      }
+
+      // Add the new page to the pages state
+      setPages((prevPages) => [...prevPages, result.page!]);
+      console.log("Page created successfully:", result.page);
+      return true;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create page";
+      console.error("Error creating page:", err);
+      setError(errorMessage);
+      return false;
+    }
+  };
+
+  const loadSpace = async (spaceId: string) => {
+    if (!spaceId) return;
+
+    console.log("Loading space:", spaceId);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await checkSpaceRequirements(spaceId);
+      console.log("Space requirements result:", result);
+
+      if (result.error || !result.exists) {
+        console.log("Space not found or error:", result.error);
+        setError(result.error || "Space not found");
+        setSpace(null);
+        setRequiresPassword(false);
+        return;
+      }
+
+      // Create space object from the result
+      const spaceData: Space = {
+        id: spaceId,
+        title: result.title || null,
+        password: null, // We don't expose the actual password
+        qr_code_data: "", // This would need to be fetched separately if needed
+        created_at: null, // This would need to be fetched separately if needed
+      };
+
+      console.log("Space loaded successfully:", spaceData);
+      setSpace(spaceData);
+      setRequiresPassword(result.requiresPassword);
+
+      // Check authentication status
+      if (result.requiresPassword) {
+        const authenticatedSpaces = getAuthenticatedSpaces();
+        setIsAuthenticated(authenticatedSpaces.has(spaceId));
+        console.log(
+          "Password required, authenticated:",
+          authenticatedSpaces.has(spaceId)
+        );
+      } else {
+        setIsAuthenticated(true);
+        console.log("No password required, user is authenticated");
+      }
+
+      // Load pages for this space - but only after setting space
+      // We'll call loadPages after space is set using useEffect
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load space";
+      console.error("Error loading space:", err);
+      setError(errorMessage);
+      setSpace(null);
+      setRequiresPassword(false);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const authenticateSpace = async (password: string): Promise<boolean> => {
+    if (!space) {
+      console.error("No space available for authentication");
+      return false;
+    }
+
+    console.log("Authenticating space:", space.id);
+
+    try {
+      const result = await joinSpace(space.id, password);
+      console.log("joinSpace result:", result);
+
+      if (result.success) {
+        // Add to authenticated spaces
+        const authenticatedSpaces = getAuthenticatedSpaces();
+        authenticatedSpaces.add(space.id);
+        saveAuthenticatedSpaces(authenticatedSpaces);
+
+        setIsAuthenticated(true);
+        console.log("Authentication successful, user authenticated");
+        return true;
+      }
+
+      console.log("Authentication failed:", result.error);
+      return false;
+    } catch (error) {
+      console.error("Authentication failed with exception:", error);
+      return false;
+    }
+  };
+
+  const clearSpace = () => {
+    setSpace(null);
+    setPages([]);
+    setError(null);
+    setRequiresPassword(false);
+    setIsAuthenticated(false);
+  };
+
+  // Load pages when space is loaded and user is authenticated
+  useEffect(() => {
+    if (space && isAuthenticated) {
+      loadPages();
+    }
+  }, [space, isAuthenticated]);
+
+  // Load initial space if provided
+  useEffect(() => {
+    if (initialSpaceId) {
+      loadSpace(initialSpaceId);
+    }
+  }, [initialSpaceId]);
+
+  const value: SpaceContextType = {
+    space,
+    pages,
+    isLoading,
+    error,
+    requiresPassword,
+    isAuthenticated,
+    loadSpace,
+    authenticateSpace,
+    clearSpace,
+    createPage,
+    loadPages,
+  };
+
+  return (
+    <SpaceContext.Provider value={value}>
+      {typeof children === "function" ? children(value) : children}
+    </SpaceContext.Provider>
+  );
 }

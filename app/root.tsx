@@ -10,7 +10,6 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { SidebarProvider } from "./components/ui/sidebar";
-import { SpaceProvider } from "./contexts/space-context";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -35,9 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <SpaceProvider>
-          <SidebarProvider>{children}</SidebarProvider>
-        </SpaceProvider>
+        <SidebarProvider>{children}</SidebarProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

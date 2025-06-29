@@ -20,6 +20,7 @@ import { MarkToolbarButton } from "~/components/ui/mark-toolbar-button";
 import { ToolbarButton } from "~/components/ui/toolbar"; // Generic toolbar button
 import { BlockMenuKit } from "~/components/block-menu-kit";
 import { BlockPlaceholderKit } from "~/components/block-placeholder-kit";
+import { MarkdownKit } from "~/components/markdown-kit";
 
 const initialValue: Value = [
   {
@@ -53,6 +54,7 @@ export default function DocumentEditor() {
       ...DndKit,
       ...BlockMenuKit,
       ...BlockPlaceholderKit,
+      ...MarkdownKit,
     ], // Add the mark plugins
     value: initialValue, // Set initial content
   }); // Initializes the editor instance
