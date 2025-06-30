@@ -948,4 +948,176 @@ export async function deleteKanbanColumn(
     console.error('Error deleting kanban column:', err);
     return { success: false, error: errorMessage };
   }
+}
+
+// Moodboard utility functions
+
+export interface MoodboardItem {
+  id: string;
+  type: "text" | "image" | "rectangle" | "circle";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  content?: string;
+  style?: React.CSSProperties;
+}
+
+// Helper functions to convert between local and database formats
+const itemToDbItem = (item: MoodboardItem, pageId: string, isUpdate: boolean = true): TablesInsert<'moodboard_items'> => ({
+  ...(isUpdate ? { id: item.id } : {}), // Only include ID for updates, let DB generate for new items
+  page_id: pageId,
+  type: item.type,
+  properties: {
+    x: item.x,
+    y: item.y,
+    width: item.width,
+    height: item.height,
+    content: item.content,
+    style: item.style as any,
+  },
+});
+
+const dbItemToItem = (dbItem: Tables<'moodboard_items'>): MoodboardItem => {
+  const props = dbItem.properties as any;
+  return {
+    id: dbItem.id,
+    type: dbItem.type as MoodboardItem['type'],
+    x: props.x || 0,
+    y: props.y || 0,
+    width: props.width || 150,
+    height: props.height || 150,
+    content: props.content,
+    style: props.style,
+  };
+};
+
+// Load moodboard items for a page
+export async function loadMoodboardItems(pageId: string): Promise<{
+  items: MoodboardItem[];
+  error?: string;
+}> {
+  try {
+    console.log('Loading moodboard items for page:', pageId);
+    
+    const { data, error } = await supabase
+      .from('moodboard_items')
+      .select('*')
+      .eq('page_id', pageId);
+
+    if (error) {
+      console.error('Error loading moodboard items:', error);
+      return { items: [], error: `Failed to load moodboard items: ${error.message}` };
+    }
+
+    const items = data.map(dbItemToItem);
+    console.log('Successfully loaded moodboard items:', items.length);
+    return { items };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Exception while loading moodboard items:', err);
+    return { items: [], error: `Exception loading moodboard items: ${errorMessage}` };
+  }
+}
+
+// Create a new moodboard item (returns the created item with DB-generated ID)
+export async function createMoodboardItem(item: Omit<MoodboardItem, 'id'>, pageId: string): Promise<{
+  item: MoodboardItem | null;
+  error?: string;
+}> {
+  try {
+    const dbItem = itemToDbItem(item as MoodboardItem, pageId, false); // false = don't include ID
+    const { data, error } = await supabase
+      .from('moodboard_items')
+      .insert(dbItem)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating moodboard item:', error);
+      return { item: null, error: error.message };
+    }
+
+    const createdItem = dbItemToItem(data);
+    return { item: createdItem };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error creating moodboard item:', err);
+    return { item: null, error: errorMessage };
+  }
+}
+
+// Update an existing moodboard item
+export async function updateMoodboardItem(item: MoodboardItem, pageId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const dbItem = itemToDbItem(item, pageId, true); // true = include ID for update
+    const { error } = await supabase
+      .from('moodboard_items')
+      .update(dbItem)
+      .eq('id', item.id);
+
+    if (error) {
+      console.error('Error updating moodboard item:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error updating moodboard item:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Delete a moodboard item
+export async function deleteMoodboardItem(itemId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { error } = await supabase
+      .from('moodboard_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) {
+      console.error('Error deleting moodboard item:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error deleting moodboard item:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Delete multiple moodboard items (for batch cleanup)
+export async function deleteMoodboardItems(itemIds: string[]): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    if (itemIds.length === 0) return { success: true };
+
+    const { error } = await supabase
+      .from('moodboard_items')
+      .delete()
+      .in('id', itemIds);
+
+    if (error) {
+      console.error('Error deleting moodboard items:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error deleting moodboard items:', err);
+    return { success: false, error: errorMessage };
+  }
 } 

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { Rnd } from "react-rnd";
 import {
   Plus,
   Image,
@@ -18,6 +19,8 @@ import {
   ToolbarGroup,
 } from "~/components/ui/toolbar";
 import { cn } from "~/lib/utils";
+import { useMoodboardData } from "~/hooks/use-moodboard-data";
+import type { MoodboardItem } from "~/lib/space-utils";
 
 interface CanvasPosition {
   x: number;
@@ -54,11 +57,23 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Use the moodboard data hook
+  const {
+    items,
+    selectedItemId,
+    isLoading,
+    setSelectedItemId,
+    createItem,
+    updateItem,
+    deleteSelectedItem,
+  } = useMoodboardData(pageId);
+
   // Handle mouse down - start dragging
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (e.button !== 0) return; // Only handle left mouse button
+      if (e.button !== 1) return; // Only handle middle mouse button
 
+      e.preventDefault(); // Prevent default middle-click behavior
       setDragState({
         isDragging: true,
         startX: e.clientX,
@@ -156,6 +171,22 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
     setZoom((prev) => Math.max(prev / 1.2, 0.3));
   }, []);
 
+  // Handle wheel event for scroll-based zooming
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault(); // Prevent page scrolling
+
+    const zoomFactor = 1.1;
+    const delta = e.deltaY;
+
+    if (delta < 0) {
+      // Scrolling up - zoom in
+      setZoom((prev) => Math.min(prev * zoomFactor, 3));
+    } else {
+      // Scrolling down - zoom out
+      setZoom((prev) => Math.max(prev / zoomFactor, 0.3));
+    }
+  }, []);
+
   // Reset canvas position and zoom
   const handleReset = useCallback(() => {
     setCanvasPosition({ x: 0, y: 0 });
@@ -166,6 +197,39 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
   const handleToolSelect = useCallback((tool: string) => {
     setSelectedTool((prev) => (prev === tool ? null : tool));
   }, []);
+
+  // Handle canvas click
+  const handleCanvasClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (selectedTool && e.target === e.currentTarget) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        createItem(
+          selectedTool as MoodboardItem["type"],
+          x,
+          y,
+          canvasPosition,
+          zoom
+        );
+        setSelectedTool(null);
+      } else {
+        setSelectedItemId(null);
+      }
+    },
+    [selectedTool, zoom, createItem, canvasPosition, setSelectedItemId]
+  );
+
+  if (isLoading) {
+    return (
+      <div className="relative h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <div className="text-lg font-medium mb-2">Loading Moodboard...</div>
+          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -248,10 +312,11 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
 
             <ToolbarGroup>
               <ToolbarButton
-                onClick={() => {}}
+                onClick={deleteSelectedItem}
                 tooltip="Delete Selected"
                 size="sm"
                 variant="outline"
+                disabled={!selectedItemId}
               >
                 <Trash2 className="h-4 w-4 text-red-500" />
               </ToolbarButton>
@@ -265,11 +330,12 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
         ref={containerRef}
         className={cn(
           "h-full w-full overflow-hidden",
-          dragState.isDragging ? "cursor-grabbing" : "cursor-grab"
+          dragState.isDragging ? "cursor-grabbing" : "cursor-default"
         )}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleEnd}
+        onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleEnd}
@@ -299,24 +365,87 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
           />
 
           {/* Canvas Content Area */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-8 min-w-[400px] min-h-[300px]">
-              <div className="text-center text-gray-500 dark:text-gray-400">
-                <div className="text-lg font-medium mb-2">Your Moodboard</div>
-                <div className="text-sm">
-                  {selectedTool ? (
-                    <>
-                      Selected tool:{" "}
-                      <span className="capitalize font-medium">
-                        {selectedTool}
-                      </span>
-                    </>
-                  ) : (
-                    "Select a tool from the toolbar above to start creating"
-                  )}
+          <div className="absolute inset-0" onClick={handleCanvasClick}>
+            {/* Welcome message for empty state */}
+            {items.length === 0 && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                <div className="text-center text-gray-500 dark:text-gray-400">
+                  <div className="text-lg font-medium mb-2">Your Moodboard</div>
+                  <div className="text-sm">
+                    {selectedTool ? (
+                      <>
+                        Selected tool:{" "}
+                        <span className="capitalize font-medium">
+                          {selectedTool}
+                        </span>
+                        <div className="mt-2 text-xs">
+                          Click anywhere to add an item
+                        </div>
+                      </>
+                    ) : (
+                      "Select a tool from the toolbar above to start creating"
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Render moodboard items */}
+            {items.map((item) => (
+              <Rnd
+                key={item.id}
+                size={{ width: item.width, height: item.height }}
+                position={{ x: item.x, y: item.y }}
+                onDragStop={(_e, d) => {
+                  updateItem(item.id, { x: d.x, y: d.y });
+                }}
+                onResizeStop={(_e, direction, ref, delta, position) => {
+                  updateItem(item.id, {
+                    width: parseInt(ref.style.width),
+                    height: parseInt(ref.style.height),
+                    x: position.x,
+                    y: position.y,
+                  });
+                }}
+                className={cn(
+                  "border-2 transition-colors",
+                  selectedItemId === item.id
+                    ? "border-blue-500"
+                    : "border-transparent hover:border-gray-300"
+                )}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  setSelectedItemId(item.id);
+                }}
+              >
+                <div className="w-full h-full" style={item.style}>
+                  {item.type === "text" && (
+                    <textarea
+                      className="w-full h-full resize-none outline-none bg-transparent"
+                      value={item.content || ""}
+                      onChange={(e) =>
+                        updateItem(item.id, { content: e.target.value })
+                      }
+                      placeholder="Enter text..."
+                      style={{
+                        fontSize: "inherit",
+                        fontFamily: "inherit",
+                        color: "inherit",
+                      }}
+                    />
+                  )}
+                  {item.type === "image" && (
+                    <div className="w-full h-full flex items-center justify-center text-sm">
+                      Click to add image
+                    </div>
+                  )}
+                  {item.type === "rectangle" && (
+                    <div className="w-full h-full" />
+                  )}
+                  {item.type === "circle" && <div className="w-full h-full" />}
+                </div>
+              </Rnd>
+            ))}
           </div>
         </div>
       </div>
@@ -333,9 +462,9 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
       <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-200 dark:border-gray-700 px-3 py-2 max-w-xs">
         <div className="text-xs text-gray-600 dark:text-gray-400">
           <div className="font-medium mb-1">How to use:</div>
-          <div>• Drag to pan around the canvas</div>
+          <div>• Middle-click and drag to pan around the canvas</div>
+          <div>• Scroll wheel to zoom in/out</div>
           <div>• Use toolbar to select tools</div>
-          <div>• Zoom in/out with toolbar buttons</div>
         </div>
       </div>
     </div>
