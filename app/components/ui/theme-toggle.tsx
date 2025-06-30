@@ -2,7 +2,7 @@ import * as React from "react";
 import { Sun, Moon } from "lucide-react";
 import { Toggle } from "./toggle";
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const [isDark, setIsDark] = React.useState(false);
 
   React.useEffect(() => {
@@ -45,6 +45,7 @@ export function ThemeToggle() {
       aria-label="Toggle theme"
       variant="outline"
       size="sm"
+      className={className}
     >
       {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
     </Toggle>

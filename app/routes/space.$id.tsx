@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { ShareSpaceModal } from "~/components/ui/share-space-modal";
 import { useSpaceActions } from "~/hooks/use-space-actions";
+import { ThemeToggle } from "~/components/ui/theme-toggle";
 
 function SpaceContent() {
   const {
@@ -152,12 +153,13 @@ function SpaceContent() {
       <div className="flex h-screen w-full">
         <Sidebar variant="sidebar">
           <SidebarHeader>
-            <div className="flex flex-row items-center justify-start gap-4">
+            <div className="flex flex-row items-center justify-start gap-2">
               <Link to="/">
                 <h1 className="text-2xl font-bold">WrkInSpace</h1>
               </Link>
+              <ThemeToggle className="ml-auto" />
               <ShareSpaceModal>
-                <Button variant="outline" size="icon" className="ml-auto">
+                <Button variant="outline" size="icon" className="">
                   <QrCode />
                 </Button>
               </ShareSpaceModal>
