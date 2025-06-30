@@ -41,8 +41,10 @@ import {
   Kanban,
   Edit,
   Trash,
+  Settings,
 } from "lucide-react";
 import { ShareSpaceModal } from "~/components/ui/share-space-modal";
+import { SpaceSettingsModal } from "~/components/ui/space-settings-modal";
 import { useSpaceActions } from "~/hooks/use-space-actions";
 import { ThemeToggle } from "~/components/ui/theme-toggle";
 
@@ -155,7 +157,7 @@ function SpaceContent() {
           <SidebarHeader>
             <div className="flex flex-row items-center justify-start gap-2">
               <Link to="/">
-                <h1 className="text-2xl font-bold">WrkInSpace</h1>
+                <h1 className="text-2xl font-bold">WrkIn.Space</h1>
               </Link>
               <ThemeToggle className="ml-auto" />
               <ShareSpaceModal>
@@ -165,7 +167,7 @@ function SpaceContent() {
               </ShareSpaceModal>
             </div>
             <p className="text-sm text-muted-foreground">
-              Space: {space.title || "Untitled"}
+              {space.title || "Untitled Space"}
             </p>
             {requiresPassword && (
               <div className="flex items-center gap-1 text-xs text-amber-600">
@@ -264,9 +266,16 @@ function SpaceContent() {
           </SidebarContent>
 
           <SidebarFooter>
-            <p className="text-xs text-muted-foreground">
-              Space ID: {space.id}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Space ID: {space.id}
+              </p>
+              <SpaceSettingsModal>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Settings className="h-3 w-3" />
+                </Button>
+              </SpaceSettingsModal>
+            </div>
           </SidebarFooter>
         </Sidebar>
 

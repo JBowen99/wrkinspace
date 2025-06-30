@@ -1120,4 +1120,91 @@ export async function deleteMoodboardItems(itemIds: string[]): Promise<{
     console.error('Error deleting moodboard items:', err);
     return { success: false, error: errorMessage };
   }
+}
+
+// Update space title
+export async function updateSpaceTitle(
+  spaceId: string,
+  newTitle: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { error } = await supabase
+      .from('spaces')
+      .update({ title: newTitle || null })
+      .eq('id', spaceId);
+
+    if (error) {
+      console.error('Error updating space title:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log('Successfully updated space title');
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error updating space title:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Update space password
+export async function updateSpacePassword(
+  spaceId: string,
+  newPassword?: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Update both password and QR code data
+    const qrCodeData = generateQRCodeData(spaceId, newPassword);
+    
+    const { error } = await supabase
+      .from('spaces')
+      .update({ 
+        password: newPassword || null,
+        qr_code_data: qrCodeData
+      })
+      .eq('id', spaceId);
+
+    if (error) {
+      console.error('Error updating space password:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log('Successfully updated space password');
+    return { success: true };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error updating space password:', err);
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Get space details for settings
+export async function getSpaceDetails(spaceId: string): Promise<{
+  space: Tables<'spaces'> | null;
+  error?: string;
+}> {
+  try {
+    const { data: space, error } = await supabase
+      .from('spaces')
+      .select('*')
+      .eq('id', spaceId)
+      .single();
+
+    if (error) {
+      console.error('Error getting space details:', error);
+      return { space: null, error: error.message };
+    }
+
+    return { space };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('Error getting space details:', err);
+    return { space: null, error: errorMessage };
+  }
 } 

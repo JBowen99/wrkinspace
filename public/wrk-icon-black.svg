@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="21.277988mm"
+   height="13.838809mm"
+   viewBox="0 0 21.277988 13.838809"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="wrkinspace-logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false" />
+  <defs
+     id="defs1">
+    <rect
+       x="-50.22427"
+       y="48.314602"
+       width="166.33209"
+       height="78.678322"
+       id="rect10" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-47.691048,-93.819245)">
+    <g
+       id="g11"
+       transform="matrix(1.3480186,0,0,1.3480186,-42.864167,-35.30262)">
+      <path
+         id="text10"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:53.3333px;font-family:Inter;-inkscape-font-specification:Inter;text-align:center;letter-spacing:0.01px;word-spacing:0px;text-anchor:middle;white-space:pre;shape-inside:url(#rect10);fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.649999;stroke-linecap:round;stroke-opacity:1;paint-order:stroke markers fill"
+         d="m 67.67112,95.786411 2.01073,7.487919 c 0.56845,0.004 1.216777,-0.0672 1.912028,-0.19482 -0.05889,-0.3089 -0.11759,-0.61766 -0.181384,-0.92656 -0.08728,-0.4226 -0.178973,-0.84554 -0.275435,-1.26814 l -1.205612,-5.098399 z m 5.891114,0 -1.274341,5.098399 c -0.101056,0.4226 -0.197519,0.84554 -0.289388,1.26814 -0.06408,0.29478 -0.125739,0.5894 -0.187586,0.88418 0.606229,-0.12021 1.24282,-0.28061 1.896009,-0.47852 l 0.544669,-2.10788 c 0.110243,-0.40882 0.215721,-0.863576 0.316777,-1.364262 0.02055,-0.101796 0.0508,-0.236209 0.07286,-0.343131 0.02366,0.113472 0.05009,0.2354 0.07183,0.343131 0.105649,0.500686 0.209002,0.955442 0.310058,1.364262 l 0.396358,1.52032 c 0.559195,-0.21278 1.114287,-0.4445 1.657264,-0.69195 -0.03053,-0.13139 -0.0585,-0.2629 -0.08992,-0.39429 l -1.260905,-5.098399 z m 5.781042,0 -1.174605,4.967139 c 0.931478,-0.47717 1.791269,-0.991332 2.512508,-1.514637 l 0.929142,-3.452502 z m 0.77618,5.809739 c -0.77273,0.56129 -1.573371,0.86651 -2.38125,1.27177 -0.04386,0.21792 -0.08862,0.33473 -0.131258,0.55265 -0.0088,0.0478 -0.01753,0.0963 -0.02636,0.14418 -0.0098,-0.0479 -0.01907,-0.0964 -0.02894,-0.14418 -0.0348,-0.16851 -0.07381,-0.23584 -0.110071,-0.40434 -0.533559,0.25513 -1.068732,0.45959 -1.600936,0.65233 l 0.643372,2.38389 h 2.363163 z m -6.86263,2.70602 c -1.169943,0.22666 -2.269943,0.53029 -3.22771,0.48822 l 0.398425,1.26206 h 2.377116 z"
+         sodipodi:nodetypes="cccscccccscccscccccccccccccccccscccccccccc"
+         inkscape:export-filename="..\..\..\..\Projects\wrkinspace\wrk-icon.svg"
+         inkscape:export-xdpi="96"
+         inkscape:export-ydpi="96" />
+      <path
+         id="path11"
+         style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.556;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1;paint-order:stroke markers fill"
+         d="m 81.610322,97.878215 c 2.648406,0.599963 -0.04791,2.365495 -3.286713,3.806425 -2.974598,1.32338 -6.420165,2.43277 -8.825611,2.38254 -2.405447,-0.0502 -2.632457,-1.72461 -0.974291,-2.46479"
+         sodipodi:nodetypes="cssc" />
+    </g>
+  </g>
+</svg>
