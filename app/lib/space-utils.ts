@@ -1,6 +1,84 @@
 import { supabase } from './supabase'
 import type { TablesInsert, Tables } from '../../database.types'
 
+// Recently visited spaces management
+export interface RecentSpace {
+  id: string;
+  title: string;
+  lastVisited: string;
+}
+
+// Get recently visited spaces from localStorage
+export function getRecentlyVisitedSpaces(): RecentSpace[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem("wrkinspace_recent_spaces");
+    const spaces = stored ? JSON.parse(stored) : [];
+    // Sort by lastVisited date, most recent first
+    return spaces.sort((a: RecentSpace, b: RecentSpace) => 
+      new Date(b.lastVisited).getTime() - new Date(a.lastVisited).getTime()
+    );
+  } catch {
+    return [];
+  }
+}
+
+// Add or update a recently visited space
+export function addRecentlyVisitedSpace(spaceId: string, title?: string): void {
+  if (typeof window === "undefined") return;
+  
+  try {
+    const currentSpaces = getRecentlyVisitedSpaces();
+    const now = new Date().toISOString();
+    
+    // Remove existing entry if it exists
+    const filteredSpaces = currentSpaces.filter(space => space.id !== spaceId);
+    
+    // Add new entry at the beginning
+    const newSpace: RecentSpace = {
+      id: spaceId,
+      title: title || "Untitled Space",
+      lastVisited: now
+    };
+    
+    const updatedSpaces = [newSpace, ...filteredSpaces];
+    
+    // Keep only the last 10 spaces
+    const limitedSpaces = updatedSpaces.slice(0, 10);
+    
+    localStorage.setItem("wrkinspace_recent_spaces", JSON.stringify(limitedSpaces));
+    console.log('Added/updated recently visited space:', spaceId);
+  } catch (error) {
+    console.error('Error saving recently visited space:', error);
+  }
+}
+
+// Remove a space from recently visited
+export function removeRecentlyVisitedSpace(spaceId: string): void {
+  if (typeof window === "undefined") return;
+  
+  try {
+    const currentSpaces = getRecentlyVisitedSpaces();
+    const filteredSpaces = currentSpaces.filter(space => space.id !== spaceId);
+    localStorage.setItem("wrkinspace_recent_spaces", JSON.stringify(filteredSpaces));
+    console.log('Removed recently visited space:', spaceId);
+  } catch (error) {
+    console.error('Error removing recently visited space:', error);
+  }
+}
+
+// Clear all recently visited spaces
+export function clearRecentlyVisitedSpaces(): void {
+  if (typeof window === "undefined") return;
+  
+  try {
+    localStorage.removeItem("wrkinspace_recent_spaces");
+    console.log('Cleared all recently visited spaces');
+  } catch (error) {
+    console.error('Error clearing recently visited spaces:', error);
+  }
+}
+
 // Generate a random space ID
 export function generateSpaceId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'

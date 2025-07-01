@@ -7,6 +7,7 @@ import {
   createPage as createPageUtil,
   renamePage as renamePageUtil,
   deletePage as deletePageUtil,
+  addRecentlyVisitedSpace,
 } from "~/lib/space-utils";
 
 type Space = Tables<"spaces">;
@@ -213,6 +214,9 @@ export function SpaceProvider({
       console.log("Space loaded successfully:", spaceData);
       setSpace(spaceData);
       setRequiresPassword(result.requiresPassword);
+
+      // Add to recently visited spaces
+      addRecentlyVisitedSpace(spaceId, result.title);
 
       // Check authentication status
       if (result.requiresPassword) {

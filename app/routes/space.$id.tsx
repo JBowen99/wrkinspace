@@ -42,6 +42,7 @@ import {
   Edit,
   Trash,
   Settings,
+  Lock,
 } from "lucide-react";
 import { ShareSpaceModal } from "~/components/ui/share-space-modal";
 import { SpaceSettingsModal } from "~/components/ui/space-settings-modal";
@@ -166,15 +167,10 @@ function SpaceContent() {
                 </Button>
               </ShareSpaceModal>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-md font-bold text-muted-foreground pl-2">
               {space.title || "Untitled Space"}
             </p>
-            {requiresPassword && (
-              <div className="flex items-center gap-1 text-xs text-amber-600">
-                <span>🔒</span>
-                <span>Password Protected</span>
-              </div>
-            )}
+            
           </SidebarHeader>
 
           <SidebarContent>
