@@ -1,6 +1,6 @@
 import { useParams } from "react-router";
 import { useSpace } from "~/contexts/space-context";
-import { FileText, Image, Kanban } from "lucide-react";
+import { FileText, Image, Columns3 } from "lucide-react";
 import DocumentEditor from "~/components/document-editor";
 import MoodboardEditor from "~/components/moodboard-editor";
 import KanbanEditor from "~/components/kanban-editor";
@@ -46,7 +46,7 @@ export default function SpacePage() {
       case "moodboard":
         return <Image className="h-16 w-16 text-purple-500" />;
       case "kanban":
-        return <Kanban className="h-16 w-16 text-green-500" />;
+        return <Columns3 className="h-16 w-16 text-green-500" />;
       default:
         return <FileText className="h-16 w-16 text-gray-500" />;
     }
@@ -67,7 +67,7 @@ export default function SpacePage() {
 
   if (currentPage.type === "kanban") {
     return (
-      <div className="flex flex-col items-start justify-center h-full w-full">
+      <div className="flex flex-col items-start justify-center h-full w-full overflow-hidden">
         <KanbanEditor pageId={pageId!} />
       </div>
     );

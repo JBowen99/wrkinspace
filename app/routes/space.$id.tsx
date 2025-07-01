@@ -42,11 +42,17 @@ import {
   Edit,
   Trash,
   Settings,
+  Columns3,
 } from "lucide-react";
 import { ShareSpaceModal } from "~/components/ui/share-space-modal";
 import { SpaceSettingsModal } from "~/components/ui/space-settings-modal";
 import { useSpaceActions } from "~/hooks/use-space-actions";
 import { ThemeToggle } from "~/components/ui/theme-toggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 function SpaceContent() {
   const {
@@ -159,15 +165,27 @@ function SpaceContent() {
               <Link to="/">
                 <h1 className="text-2xl font-bold">WrkIn.Space</h1>
               </Link>
-              <ThemeToggle className="ml-auto" />
-              <ShareSpaceModal>
-                <Button variant="outline" size="icon" className="">
-                  <QrCode />
-                </Button>
-              </ShareSpaceModal>
+              <div className="flex flex-row items-center gap-2 ml-auto">
+                <Tooltip>
+                  <TooltipTrigger>
+                    <ThemeToggle />
+                  </TooltipTrigger>
+                  <TooltipContent>Toggle Theme</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <ShareSpaceModal>
+                      <Button variant="outline" className="h-8 w-8">
+                        <QrCode />
+                      </Button>
+                    </ShareSpaceModal>
+                  </TooltipTrigger>
+                  <TooltipContent>Share Space</TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {space.title || "Untitled Space"}
+            <p className="text-lg text-muted-foreground">
+              {"Space: " + space.title || "Untitled Space"}
             </p>
             {requiresPassword && (
               <div className="flex items-center gap-1 text-xs text-amber-600">
@@ -179,8 +197,7 @@ function SpaceContent() {
 
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Pages</SidebarGroupLabel>
-              <SidebarGroupContent className="space-y-2">
+              <SidebarGroupContent className="flex flex-col gap-1">
                 {pages.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-2">
                     No pages yet
@@ -207,7 +224,7 @@ function SpaceContent() {
                                   <Image className="h-4 w-4" />
                                 )}
                                 {page.type === "kanban" && (
-                                  <Kanban className="h-4 w-4" />
+                                  <Columns3 className="h-4 w-4" />
                                 )}
                               </span>
                               {page.title}
@@ -256,7 +273,7 @@ function SpaceContent() {
                     <DropdownMenuItem
                       onClick={() => handleCreatePage("kanban")}
                     >
-                      <Kanban className="h-4 w-4 mr-2" />
+                      <Columns3 className="h-4 w-4 mr-2" />
                       Planning Board
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -266,21 +283,24 @@ function SpaceContent() {
           </SidebarContent>
 
           <SidebarFooter>
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Space ID: {space.id}
-              </p>
-              <SpaceSettingsModal>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Settings className="h-3 w-3" />
-                </Button>
-              </SpaceSettingsModal>
+            <div className="flex items-center justify-between text-muted-foreground">
+              <p className="text-xs">Space ID: {space.id}</p>
+              <Tooltip>
+                <TooltipTrigger>
+                  <SpaceSettingsModal>
+                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Settings className="h-3 w-3" />
+                    </Button>
+                  </SpaceSettingsModal>
+                </TooltipTrigger>
+                <TooltipContent>Space Settings</TooltipContent>
+              </Tooltip>
             </div>
           </SidebarFooter>
         </Sidebar>
 
         <SidebarInset>
-          <div className="flex flex-col h-screen w-full">
+          <div className="flex flex-col h-screen w-full overflow-hidden">
             <Outlet />
           </div>
         </SidebarInset>

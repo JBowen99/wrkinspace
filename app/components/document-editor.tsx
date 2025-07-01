@@ -181,10 +181,6 @@ export default function DocumentEditor({
 
           {/* Save Controls */}
           <div className="ml-auto flex items-center gap-2">
-            {lastSaved && (
-              <span className="text-xs text-muted-foreground">{lastSaved}</span>
-            )}
-            {error && <span className="text-xs text-red-600">Save error</span>}
             <Button
               variant="outline"
               size="sm"
@@ -198,10 +194,16 @@ export default function DocumentEditor({
               )}
               {isSaving ? "Saving..." : "Save"}
             </Button>
+            {/*
+            {lastSaved && (
+              <span className="text-xs text-muted-foreground">{lastSaved}</span>
+            )}
+            {error && <span className="text-xs text-red-600">Save error</span>}
+            */}
           </div>
         </FixedToolbar>
 
-        <EditorContainer className="flex-1">
+        <EditorContainer className="flex-1 pt-24">
           <Editor placeholder="Type your amazing content here..." />
         </EditorContainer>
       </Plate>
