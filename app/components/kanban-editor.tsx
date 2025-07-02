@@ -574,8 +574,8 @@ export default function KanbanEditor({ pageId }: KanbanEditorProps) {
         {/* Kanban Board - Horizontally Scrollable */}
         <div className="flex flex-row overflow-x-scroll h-full">
           {columns.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="text-center w-full">
                 <h3 className="text-xl font-semibold mb-2">No columns yet</h3>
                 <p className="text-muted-foreground mb-4">
                   Create your first column to get started
