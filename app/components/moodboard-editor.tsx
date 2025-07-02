@@ -473,6 +473,7 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
         <div className=" rounded-lg shadow-lg border bg-sidebar p-2">
           <Toolbar className="gap-1">
             <ToolbarGroup>
+              {/*
               <ToolbarButton
                 pressed={selectedTool === "select"}
                 onClick={() => handleToolSelect("select")}
@@ -481,6 +482,7 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
               >
                 <Plus className="h-4 w-4" />
               </ToolbarButton>
+              */}
 
               <ToolbarButton
                 pressed={false}

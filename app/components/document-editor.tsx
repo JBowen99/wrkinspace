@@ -101,16 +101,6 @@ export default function DocumentEditor({
   if (isLoading) {
     return (
       <div className="flex flex-col h-full w-full">
-        <div className="border-b">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span className="text-sm text-muted-foreground">
-                Loading document...
-              </span>
-            </div>
-          </div>
-        </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
