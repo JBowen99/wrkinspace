@@ -1,6 +1,9 @@
 import { supabase } from './supabase'
 import type { TablesInsert, Tables } from '../../database.types'
 
+// Helper function to check if we should log (not in production)
+const shouldLog = () => typeof process !== 'undefined' && process.env.NODE_ENV !== 'production'
+
 // Recently visited spaces management
 export interface RecentSpace {
   id: string;
@@ -47,7 +50,7 @@ export function addRecentlyVisitedSpace(spaceId: string, title?: string): void {
     const limitedSpaces = updatedSpaces.slice(0, 10);
     
     localStorage.setItem("wrkinspace_recent_spaces", JSON.stringify(limitedSpaces));
-    console.log('Added/updated recently visited space:', spaceId);
+    if (shouldLog()) console.log('Added/updated recently visited space:', spaceId);
   } catch (error) {
     console.error('Error saving recently visited space:', error);
   }
@@ -61,7 +64,7 @@ export function removeRecentlyVisitedSpace(spaceId: string): void {
     const currentSpaces = getRecentlyVisitedSpaces();
     const filteredSpaces = currentSpaces.filter(space => space.id !== spaceId);
     localStorage.setItem("wrkinspace_recent_spaces", JSON.stringify(filteredSpaces));
-    console.log('Removed recently visited space:', spaceId);
+    if (shouldLog()) console.log('Removed recently visited space:', spaceId);
   } catch (error) {
     console.error('Error removing recently visited space:', error);
   }
@@ -73,7 +76,7 @@ export function clearRecentlyVisitedSpaces(): void {
   
   try {
     localStorage.removeItem("wrkinspace_recent_spaces");
-    console.log('Cleared all recently visited spaces');
+    if (shouldLog()) console.log('Cleared all recently visited spaces');
   } catch (error) {
     console.error('Error clearing recently visited spaces:', error);
   }
@@ -106,7 +109,7 @@ export async function createSpace(options: {
   title?: string
   password?: string
 } = {}): Promise<{ spaceId: string; error?: string; rateLimited?: boolean }> {
-  console.log('createSpace function called with options:', options)
+  if (shouldLog()) console.log('createSpace function called with options:', options)
   
   try {
     const response = await fetch('/api/create-space', {
@@ -145,7 +148,7 @@ export async function createSpace(options: {
       };
     }
 
-    console.log('Space created successfully with ID:', result.spaceId);
+    if (shouldLog()) console.log('Space created successfully with ID:', result.spaceId);
     return { spaceId: result.spaceId };
     
   } catch (err) {
@@ -224,7 +227,7 @@ export async function checkSpaceRequirements(spaceId: string): Promise<{
 
 // Secure server-side space authentication (NEW)
 export async function joinSpaceSecure(spaceId: string, password?: string): Promise<{ success: boolean; error?: string }> {
-  console.log('joinSpaceSecure called for space:', spaceId)
+  if (shouldLog()) console.log('joinSpaceSecure called for space:', spaceId)
   
   try {
     const response = await fetch('/api/auth-space', {
@@ -238,11 +241,11 @@ export async function joinSpaceSecure(spaceId: string, password?: string): Promi
     const result = await response.json();
 
     if (!response.ok) {
-      console.log('Authentication failed:', result.error);
+      if (shouldLog()) console.log('Authentication failed:', result.error);
       return { success: false, error: result.error || 'Authentication failed' };
     }
 
-    console.log('Authentication successful');
+    if (shouldLog()) console.log('Authentication successful');
     return { success: true };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Network error occurred';
@@ -268,7 +271,7 @@ export async function loadPagesForSpace(spaceId: string): Promise<{
   error?: string 
 }> {
   try {
-    console.log('Loading pages for space:', spaceId);
+    if (shouldLog()) console.log('Loading pages for space:', spaceId);
     
     const { data: pages, error } = await supabase
       .from('pages')
@@ -277,7 +280,7 @@ export async function loadPagesForSpace(spaceId: string): Promise<{
       .order('order', { ascending: true, nullsFirst: false })
       .order('title', { ascending: true })
 
-    console.log('Pages query result:', { pages, error });
+    if (shouldLog()) console.log('Pages query result:', { pages, error });
 
     if (error) {
       console.error('Error loading pages:', error)
@@ -285,7 +288,7 @@ export async function loadPagesForSpace(spaceId: string): Promise<{
       return { pages: [], error: `Failed to load pages: ${error.message}` }
     }
 
-    console.log('Successfully loaded pages:', pages?.length || 0);
+    if (shouldLog()) console.log('Successfully loaded pages:', pages?.length || 0);
     return { pages: pages || [] }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
@@ -413,7 +416,7 @@ export async function loadDocumentBlocks(pageId: string): Promise<{
   error?: string;
 }> {
   try {
-    console.log('Loading document blocks for page:', pageId);
+    if (shouldLog()) console.log('Loading document blocks for page:', pageId);
     
     const { data: blocks, error } = await supabase
       .from('document_blocks')
@@ -422,14 +425,14 @@ export async function loadDocumentBlocks(pageId: string): Promise<{
       .order('order', { ascending: true, nullsFirst: false })
       .order('id', { ascending: true }) // Secondary sort for consistency
 
-    console.log('Document blocks query result:', { blocks, error });
+    if (shouldLog()) console.log('Document blocks query result:', { blocks, error });
 
     if (error) {
       console.error('Error loading document blocks:', error)
       return { blocks: [], error: `Failed to load document blocks: ${error.message}` }
     }
 
-    console.log('Successfully loaded document blocks:', blocks?.length || 0);
+    if (shouldLog()) console.log('Successfully loaded document blocks:', blocks?.length || 0);
     return { blocks: blocks || [] }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
@@ -447,8 +450,8 @@ export async function saveDocumentBlocks(
   error?: string;
 }> {
   try {
-    console.log('Saving document blocks for page:', pageId, 'blocks data:', blocks);
-    console.log('Blocks type:', typeof blocks, 'Is array:', Array.isArray(blocks));
+    if (shouldLog()) console.log('Saving document blocks for page:', pageId, 'blocks data:', blocks);
+    if (shouldLog()) console.log('Blocks type:', typeof blocks, 'Is array:', Array.isArray(blocks));
     
     // Ensure blocks is an array
     let blocksArray: any[];
@@ -456,15 +459,15 @@ export async function saveDocumentBlocks(
       blocksArray = blocks;
     } else if (blocks && typeof blocks === 'object') {
       // If it's an object, maybe it has a property with the blocks
-      console.log('Blocks object keys:', Object.keys(blocks));
+      if (shouldLog()) console.log('Blocks object keys:', Object.keys(blocks));
       // For now, assume the blocks are the object itself wrapped in an array
       blocksArray = [blocks];
     } else {
-      console.log('Unexpected blocks format, using empty array');
+      if (shouldLog()) console.log('Unexpected blocks format, using empty array');
       blocksArray = [];
     }
     
-    console.log('Processed blocks array length:', blocksArray.length);
+    if (shouldLog()) console.log('Processed blocks array length:', blocksArray.length);
     
     // Start a transaction by deleting existing blocks first
     const { error: deleteError } = await supabase
@@ -479,7 +482,7 @@ export async function saveDocumentBlocks(
 
     // If there are no blocks to save, we're done
     if (blocksArray.length === 0) {
-      console.log('No blocks to save, deletion completed successfully');
+      if (shouldLog()) console.log('No blocks to save, deletion completed successfully');
       return { success: true }
     }
 
@@ -487,7 +490,7 @@ export async function saveDocumentBlocks(
     const documentBlocks: TablesInsert<'document_blocks'>[] = blocksArray.map((block, index) => {
       const plateType = block?.type || 'p';
       const dbType = mapPlateTypeToDbType(plateType);
-      console.log(`Block ${index}: plateType="${plateType}" -> dbType="${dbType}", full block:`, block);
+      if (shouldLog()) console.log(`Block ${index}: plateType="${plateType}" -> dbType="${dbType}", full block:`, block);
       
       return {
         page_id: pageId,
@@ -497,8 +500,8 @@ export async function saveDocumentBlocks(
       };
     });
 
-    console.log('Prepared document blocks for insertion:', documentBlocks.length);
-    console.log('Document blocks to insert:', documentBlocks);
+    if (shouldLog()) console.log('Prepared document blocks for insertion:', documentBlocks.length);
+    if (shouldLog()) console.log('Document blocks to insert:', documentBlocks);
 
     // Insert new blocks
     const { error: insertError } = await supabase
@@ -510,7 +513,7 @@ export async function saveDocumentBlocks(
       return { success: false, error: `Failed to insert blocks: ${insertError.message}` }
     }
 
-    console.log('Document blocks saved successfully');
+    if (shouldLog()) console.log('Document blocks saved successfully');
     return { success: true }
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
@@ -548,10 +551,10 @@ function mapPlateTypeToDbType(plateType: string): string {
 
 // Convert database blocks to Plate editor format
 export function convertBlocksToPlateValue(blocks: Tables<'document_blocks'>[]): any[] {
-  console.log('Converting blocks to Plate value:', blocks);
+  if (shouldLog()) console.log('Converting blocks to Plate value:', blocks);
   
   if (!blocks || blocks.length === 0) {
-    console.log('No blocks found, returning default structure');
+    if (shouldLog()) console.log('No blocks found, returning default structure');
     // Return default empty document structure
     return [
       {
@@ -562,10 +565,10 @@ export function convertBlocksToPlateValue(blocks: Tables<'document_blocks'>[]): 
   }
 
   const sortedBlocks = blocks.sort((a, b) => (a.order || 0) - (b.order || 0));
-  console.log('Sorted blocks:', sortedBlocks);
+  if (shouldLog()) console.log('Sorted blocks:', sortedBlocks);
   
   const plateValue = sortedBlocks.map((block, index) => {
-    console.log(`Converting block ${index}:`, {
+    if (shouldLog()) console.log(`Converting block ${index}:`, {
       id: block.id,
       type: block.type,
       order: block.order,
@@ -577,7 +580,7 @@ export function convertBlocksToPlateValue(blocks: Tables<'document_blocks'>[]): 
     // Validate that the content has the expected Plate structure
     if (typeof content === 'object' && content !== null && !Array.isArray(content)) {
       if (!content.children || !content.type) {
-        console.warn(`Block ${index} missing required Plate structure:`, content);
+        if (shouldLog()) console.warn(`Block ${index} missing required Plate structure:`, content);
         // Fallback to a basic paragraph if structure is invalid
         return {
           children: [{ text: content.text || '' }],
@@ -585,7 +588,7 @@ export function convertBlocksToPlateValue(blocks: Tables<'document_blocks'>[]): 
         };
       }
     } else {
-      console.warn(`Block ${index} content is not an object:`, content);
+      if (shouldLog()) console.warn(`Block ${index} content is not an object:`, content);
       return {
         children: [{ text: '' }],
         type: 'p'
@@ -595,8 +598,8 @@ export function convertBlocksToPlateValue(blocks: Tables<'document_blocks'>[]): 
     return content;
   });
   
-  console.log('Final Plate value:', plateValue);
-  console.log('Final Plate value (stringified):', JSON.stringify(plateValue, null, 2));
+  if (shouldLog()) console.log('Final Plate value:', plateValue);
+  if (shouldLog()) console.log('Final Plate value (stringified):', JSON.stringify(plateValue, null, 2));
   return plateValue;
 }
 
@@ -616,12 +619,12 @@ export async function autoSaveDocumentBlocks(
   
   // Set new timeout
   (globalThis as any)[key] = setTimeout(async () => {
-    console.log('Auto-saving document blocks for page:', pageId);
+    if (shouldLog()) console.log('Auto-saving document blocks for page:', pageId);
     const result = await saveDocumentBlocks(pageId, blocks);
     if (result.error) {
       console.error('Auto-save failed:', result.error);
     } else {
-      console.log('Auto-save completed successfully');
+      if (shouldLog()) console.log('Auto-save completed successfully');
     }
     delete (globalThis as any)[key];
   }, debounceMs);
@@ -643,7 +646,7 @@ export async function loadKanbanData(pageId: string): Promise<{
   error?: string;
 }> {
   try {
-    console.log('Loading kanban data for page:', pageId);
+    if (shouldLog()) console.log('Loading kanban data for page:', pageId);
     
     // Load columns
     const { data: columns, error: columnsError } = await supabase
@@ -692,7 +695,7 @@ export async function loadKanbanData(pageId: string): Promise<{
               description = (card.content as any).description || undefined;
             }
           } catch (err) {
-            console.warn('Failed to parse card content:', card.content);
+            if (shouldLog()) console.warn('Failed to parse card content:', card.content);
             title = String(card.content) || 'Untitled';
           }
           
@@ -705,7 +708,7 @@ export async function loadKanbanData(pageId: string): Promise<{
       };
     });
 
-    console.log('Successfully loaded kanban data:', columnsWithCards.length, 'columns');
+    if (shouldLog()) console.log('Successfully loaded kanban data:', columnsWithCards.length, 'columns');
     return { columns: columnsWithCards };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -1000,7 +1003,7 @@ export async function deleteKanbanCard(
       return { success: false, error: error.message };
     }
 
-    console.log('Successfully deleted kanban card');
+    if (shouldLog()) console.log('Successfully deleted kanban card');
     return { success: true };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -1068,7 +1071,7 @@ export async function deleteKanbanColumn(
       return { success: false, error: `Failed to delete column: ${columnError.message}` };
     }
 
-    console.log('Successfully deleted column and its cards');
+    if (shouldLog()) console.log('Successfully deleted column and its cards');
     return { success: true };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -1135,7 +1138,7 @@ export async function loadMoodboardItems(pageId: string): Promise<{
   error?: string;
 }> {
   try {
-    console.log('Loading moodboard items for page:', pageId);
+    if (shouldLog()) console.log('Loading moodboard items for page:', pageId);
     
     const { data, error } = await supabase
       .from('moodboard_items')
@@ -1148,7 +1151,7 @@ export async function loadMoodboardItems(pageId: string): Promise<{
     }
 
     const items = data.map(dbItemToItem);
-    console.log('Successfully loaded moodboard items:', items.length);
+    if (shouldLog()) console.log('Successfully loaded moodboard items:', items.length);
     return { items };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -1281,7 +1284,7 @@ export async function updateSpaceTitle(
       return { success: false, error: error.message };
     }
 
-    console.log('Successfully updated space title');
+    if (shouldLog()) console.log('Successfully updated space title');
     return { success: true };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -1315,7 +1318,7 @@ export async function updateSpacePassword(
       return { success: false, error: error.message };
     }
 
-    console.log('Successfully updated space password');
+    if (shouldLog()) console.log('Successfully updated space password');
     return { success: true };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
