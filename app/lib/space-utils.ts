@@ -1081,6 +1081,7 @@ export interface MoodboardItem {
   height: number;
   content?: string;
   style?: React.CSSProperties;
+  aspectRatio?: number; // For images to maintain proportions
 }
 
 // Helper functions to convert between local and database formats
@@ -1095,12 +1096,13 @@ const itemToDbItem = (item: MoodboardItem, pageId: string, isUpdate: boolean = t
     height: item.height,
     content: item.content,
     style: item.style as any,
+    aspectRatio: item.aspectRatio,
   },
 });
 
 const dbItemToItem = (dbItem: Tables<'moodboard_items'>): MoodboardItem => {
   const props = dbItem.properties as any;
-  return {
+  const item: MoodboardItem = {
     id: dbItem.id,
     type: dbItem.type as MoodboardItem['type'],
     x: props.x || 0,
@@ -1109,7 +1111,15 @@ const dbItemToItem = (dbItem: Tables<'moodboard_items'>): MoodboardItem => {
     height: props.height || 150,
     content: props.content,
     style: props.style,
+    aspectRatio: props.aspectRatio,
   };
+  
+  // For existing image items without aspect ratio, calculate it from dimensions
+  if (item.type === "image" && !item.aspectRatio && item.width && item.height) {
+    item.aspectRatio = item.width / item.height;
+  }
+  
+  return item;
 };
 
 // Load moodboard items for a page
@@ -1222,8 +1232,11 @@ export async function deleteMoodboardItems(itemIds: string[]): Promise<{
   error?: string;
 }> {
   try {
-    if (itemIds.length === 0) return { success: true };
+    if (itemIds.length === 0) {
+      return { success: true };
+    }
 
+    // Delete all items in a single query
     const { error } = await supabase
       .from('moodboard_items')
       .delete()
@@ -1236,7 +1249,7 @@ export async function deleteMoodboardItems(itemIds: string[]): Promise<{
 
     return { success: true };
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    const errorMessage = err instanceof Error ? err.message : 'Error deleting items';
     console.error('Error deleting moodboard items:', err);
     return { success: false, error: errorMessage };
   }
@@ -1327,4 +1340,164 @@ export async function getSpaceDetails(spaceId: string): Promise<{
     console.error('Error getting space details:', err);
     return { space: null, error: errorMessage };
   }
+}
+
+// Image utilities for moodboard
+export async function convertImageToWebP(file: File, quality: number = 0.8): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Calculate new dimensions to limit max size while maintaining aspect ratio
+      const maxWidth = 2000;
+      const maxHeight = 2000;
+      let { width, height } = img;
+      
+      if (width > maxWidth || height > maxHeight) {
+        const ratio = Math.min(maxWidth / width, maxHeight / height);
+        width *= ratio;
+        height *= ratio;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw and convert to WebP
+      ctx?.drawImage(img, 0, 0, width, height);
+      
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const webpFile = new File([blob], `${file.name.split('.')[0]}.webp`, {
+              type: 'image/webp',
+              lastModified: Date.now(),
+            });
+            resolve(webpFile);
+          } else {
+            reject(new Error('Failed to convert image to WebP'));
+          }
+        },
+        'image/webp',
+        quality
+      );
+    };
+    
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+export async function uploadImageToSupabase(file: File, pageId: string): Promise<{
+  url: string | null;
+  error?: string;
+}> {
+  try {
+    // Convert to WebP if not already
+    let imageFile = file;
+    if (!file.type.includes('webp')) {
+      imageFile = await convertImageToWebP(file);
+    }
+    
+    // Generate unique filename
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const filename = `${pageId}/${timestamp}-${randomSuffix}.webp`;
+    
+    // Upload to Supabase storage
+    const { data, error } = await supabase.storage
+      .from('moodboard-images')
+      .upload(filename, imageFile, {
+        contentType: 'image/webp',
+        upsert: false
+      });
+    
+    if (error) {
+      console.error('Error uploading image:', error);
+      return { url: null, error: error.message };
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('moodboard-images')
+      .getPublicUrl(data.path);
+    
+    return { url: urlData.publicUrl, error: undefined };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to upload image';
+    console.error('Error uploading image:', err);
+    return { url: null, error: errorMessage };
+  }
+}
+
+export async function handleImageUpload(file: File, pageId: string): Promise<{
+  url: string | null;
+  width: number;
+  height: number;
+  aspectRatio: number;
+  error?: string;
+}> {
+  try {
+    // Get image dimensions
+    const dimensions = await getImageDimensions(file);
+    
+    // Upload image
+    const uploadResult = await uploadImageToSupabase(file, pageId);
+    
+    if (uploadResult.error || !uploadResult.url) {
+      return { 
+        url: null, 
+        width: 150, 
+        height: 150, 
+        aspectRatio: 1,
+        error: uploadResult.error || 'Failed to upload image' 
+      };
+    }
+    
+    const aspectRatio = dimensions.width / dimensions.height;
+    
+    // Calculate display dimensions while maintaining aspect ratio
+    const maxWidth = 400;
+    const maxHeight = 400;
+    
+    let displayWidth = dimensions.width;
+    let displayHeight = dimensions.height;
+    
+    // Scale down if too large while maintaining aspect ratio
+    if (displayWidth > maxWidth || displayHeight > maxHeight) {
+      const scale = Math.min(maxWidth / displayWidth, maxHeight / displayHeight);
+      displayWidth = Math.round(displayWidth * scale);
+      displayHeight = Math.round(displayHeight * scale);
+    }
+    
+    return {
+      url: uploadResult.url,
+      width: displayWidth,
+      height: displayHeight,
+      aspectRatio,
+      error: undefined
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to process image';
+    console.error('Error handling image upload:', err);
+    return { url: null, width: 150, height: 150, aspectRatio: 1, error: errorMessage };
+  }
+}
+
+function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.width, height: img.height });
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Utility to check if file is a valid image
+export function isValidImageFile(file: File): boolean {
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+  return validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024; // 10MB limit
 } 
