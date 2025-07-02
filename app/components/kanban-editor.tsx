@@ -560,7 +560,7 @@ export default function KanbanEditor({ pageId }: KanbanEditorProps) {
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="w-full h-full flex flex-col bg-background">
         {/* Fixed Toolbar Section */}
-        <div className="flex-shrink-0 flex justify-center py-4 border-b border-border bg-background">
+        <div className="flex-shrink-0 flex justify-center py-4 bg-background">
           <FixedToolbar className="justify-center rounded-lg">
             <ToolbarButton onClick={() => setShowAddColumnDialog(true)}>
               <Plus />
@@ -574,11 +574,10 @@ export default function KanbanEditor({ pageId }: KanbanEditorProps) {
         </div>
 
         {/* Kanban Board - Horizontally Scrollable */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden mt-8">
           {columns.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <div className="text-6xl mb-4">📋</div>
                 <h3 className="text-xl font-semibold mb-2">No columns yet</h3>
                 <p className="text-muted-foreground mb-4">
                   Create your first column to get started

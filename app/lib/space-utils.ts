@@ -120,7 +120,8 @@ export async function createSpace(options: {
       qr_code_data: qrCodeData,
       title: options.title || null,
       password: options.password || null,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      last_accessed: new Date().toISOString()
     }
 
     console.log('Space data to insert:', spaceData)
@@ -147,6 +148,30 @@ export async function createSpace(options: {
   }
 }
 
+// Update last accessed timestamp for a space
+export async function updateLastAccessed(spaceId: string): Promise<{ 
+  success: boolean; 
+  error?: string 
+}> {
+  try {
+    const { error } = await supabase
+      .from('spaces')
+      .update({ last_accessed: new Date().toISOString() })
+      .eq('id', spaceId)
+
+    if (error) {
+      console.error('Error updating last_accessed:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+    console.error('Error updating last_accessed:', err)
+    return { success: false, error: errorMessage }
+  }
+}
+
 // Check space requirements (existence and password protection)
 export async function checkSpaceRequirements(spaceId: string): Promise<{ 
   exists: boolean; 
@@ -155,9 +180,10 @@ export async function checkSpaceRequirements(spaceId: string): Promise<{
   error?: string 
 }> {
   try {
+    // SECURE: First get basic space info without password
     const { data: space, error } = await supabase
       .from('spaces')
-      .select('id, title, password')
+      .select('id, title')
       .eq('id', spaceId)
       .single()
 
@@ -165,9 +191,22 @@ export async function checkSpaceRequirements(spaceId: string): Promise<{
       return { exists: false, requiresPassword: false, error: 'Space not found' }
     }
 
+    // Separate query to check if password exists (without fetching actual password)
+    const { data: passwordCheck } = await supabase
+      .from('spaces')
+      .select('id')
+      .eq('id', spaceId)
+      .not('password', 'is', null)
+      .single()
+
+    // Update last_accessed timestamp when space is accessed
+    updateLastAccessed(spaceId).catch(err => {
+      console.error('Failed to update last_accessed for space', spaceId, ':', err)
+    })
+
     return { 
       exists: true, 
-      requiresPassword: !!space.password,
+      requiresPassword: !!passwordCheck, // True if password exists, false if not
       title: space.title || undefined
     }
   } catch (err) {
@@ -176,41 +215,44 @@ export async function checkSpaceRequirements(spaceId: string): Promise<{
   }
 }
 
-// Join a space (this could be expanded for password verification)
-export async function joinSpace(spaceId: string, password?: string): Promise<{ success: boolean; error?: string }> {
-  console.log('joinSpace called for space:', spaceId)
+// Secure server-side space authentication (NEW)
+export async function joinSpaceSecure(spaceId: string, password?: string): Promise<{ success: boolean; error?: string }> {
+  console.log('joinSpaceSecure called for space:', spaceId)
   
   try {
-    const { data: space, error } = await supabase
-      .from('spaces')
-      .select('id, password')  // Only select what we need
-      .eq('id', spaceId)
-      .single()
+    const response = await fetch('/api/auth-space', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ spaceId, password }),
+    });
 
-    console.log('Supabase query result:', { space, error })
+    const result = await response.json();
 
-    if (error) {
-      console.log('Space not found in database')
-      return { success: false, error: 'Space not found' }
+    if (!response.ok) {
+      console.log('Authentication failed:', result.error);
+      return { success: false, error: result.error || 'Authentication failed' };
     }
 
-    console.log('Space found:', { id: space.id })
-    // Password details hidden for security
-    console.log('Password comparison result:', space.password === password)
-
-    // Check password if the space has one
-    if (space.password && space.password !== password) {
-      console.log('Password mismatch detected')
-      return { success: false, error: 'Invalid password' }
-    }
-
-    console.log('Authentication successful')
-    return { success: true }
+    console.log('Authentication successful');
+    return { success: true };
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-    console.error('joinSpace exception:', err)
-    return { success: false, error: errorMessage }
+    const errorMessage = err instanceof Error ? err.message : 'Network error occurred';
+    console.error('joinSpaceSecure exception:', err);
+    return { success: false, error: errorMessage };
   }
+}
+
+// DEPRECATED: VULNERABLE FUNCTION - DO NOT USE!
+// This function has been deprecated due to critical security vulnerabilities.
+// It exposes passwords to the client-side, making them visible in browser dev tools.
+export async function joinSpace(spaceId: string, password?: string): Promise<{ success: boolean; error?: string }> {
+  console.error('🚨 SECURITY WARNING: joinSpace() function called - this function is deprecated and vulnerable!')
+  console.error('🚨 Use joinSpaceSecure() instead for secure server-side authentication')
+  
+  // Redirect to secure implementation
+  return joinSpaceSecure(spaceId, password);
 }
 
 // Load all pages for a space

@@ -161,7 +161,7 @@ function SpaceContent() {
     <>
       <div className="flex h-screen w-full">
         <Sidebar variant="sidebar">
-          <SidebarHeader>
+          <SidebarHeader className="pb-0 mb-0">
             <div className="flex flex-row items-center justify-start gap-2">
               <Link to="/">
                 <h1 className="text-2xl font-bold">WrkIn.Space</h1>
@@ -185,13 +185,12 @@ function SpaceContent() {
                 </Tooltip>
               </div>
             </div>
-            <p className="text-lg text-muted-foreground">
-              {"Space: " + space.title || "Untitled Space"}
+            <p className="text-lg font-bold text-muted-foreground pl-2 mt-4">
+              {space.title || "Untitled Space"}
             </p>
-            
           </SidebarHeader>
 
-          <SidebarContent>
+          <SidebarContent >
             <SidebarGroup>
               <SidebarGroupContent className="flex flex-col gap-1">
                 {pages.length === 0 ? (

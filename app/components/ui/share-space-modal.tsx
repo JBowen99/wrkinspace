@@ -152,14 +152,14 @@ export function ShareSpaceModal({ children }: ShareSpaceModalProps) {
             </div>
           </div>
 
-          {space?.password && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm text-yellow-800">
-                <strong>Note:</strong> This space is password-protected. Users
-                will need to enter the password when joining.
-              </p>
-            </div>
-          )}
+          {/* Note: We can't check space.password since it's not exposed for security reasons */}
+          {/* For now, we'll show this notice conditionally based on other indicators */}
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <strong>Tip:</strong> If this space is password-protected, users 
+              will be prompted to enter the password when joining.
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

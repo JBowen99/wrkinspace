@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import type { Tables } from "../../database.types";
 import {
   checkSpaceRequirements,
-  joinSpace,
+  joinSpaceSecure,
   loadPagesForSpace,
   createPage as createPageUtil,
   renamePage as renamePageUtil,
@@ -255,8 +255,8 @@ export function SpaceProvider({
     console.log("Authenticating space:", space.id);
 
     try {
-      const result = await joinSpace(space.id, password);
-      console.log("joinSpace result:", result);
+      const result = await joinSpaceSecure(space.id, password);
+      console.log("joinSpaceSecure result:", result);
 
       if (result.success) {
         // Add to authenticated spaces

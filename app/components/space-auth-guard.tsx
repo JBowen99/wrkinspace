@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { SpacePasswordModal } from "~/components/ui/space-password-modal";
-import { joinSpace } from "~/lib/space-utils";
+import { joinSpaceSecure } from "~/lib/space-utils";
 import type { Tables } from "../../database.types";
 
 type Space = Tables<"spaces">;
@@ -64,7 +64,7 @@ export function SpaceAuthGuard({
 
   const handlePasswordSubmit = async (password: string): Promise<boolean> => {
     try {
-      const result = await joinSpace(space.id, password);
+      const result = await joinSpaceSecure(space.id, password);
 
       if (result.success) {
         // Add to authenticated spaces

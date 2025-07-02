@@ -52,11 +52,25 @@ export function useSpaceActions() {
 
     try {
       // Validate space access with password if provided
-      const { joinSpace } = await import('~/lib/space-utils')
-      const result = await joinSpace(spaceId, password)
+      const { joinSpaceSecure } = await import('~/lib/space-utils')
+      const result = await joinSpaceSecure(spaceId, password)
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to join space')
+      }
+
+      // Save authentication state to localStorage (same as other auth flows)
+      if (typeof window !== "undefined") {
+        try {
+          const stored = localStorage.getItem("wrkinspace_authenticated");
+          const authenticatedSpaces = new Set(stored ? JSON.parse(stored) : []);
+          authenticatedSpaces.add(spaceId);
+          localStorage.setItem("wrkinspace_authenticated", JSON.stringify([...authenticatedSpaces]));
+          console.log('Authentication state saved for space:', spaceId);
+        } catch (err) {
+          console.error('Failed to save authentication state:', err);
+          // Don't fail the whole operation for localStorage issues
+        }
       }
 
       console.log('Successfully validated space access, navigating to space:', spaceId)
