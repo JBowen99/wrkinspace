@@ -17,12 +17,17 @@ export function useSpaceActions() {
     setIsCreating(true)
     try {
       console.log('Creating space...')
-      const { spaceId, error } = await createSpace(options)
+      const { spaceId, error, rateLimited } = await createSpace(options)
       
       if (error) {
         console.error('Failed to create space:', error)
-        // In a real app, you'd want to use a proper toast notification
-        alert(`Failed to create space: ${error}`)
+        
+        if (rateLimited) {
+          // Special handling for rate limiting
+          console.warn('Space creation rate limited')
+          return { success: false, error, rateLimited: true }
+        }
+        
         return { success: false, error }
       }
 
@@ -47,8 +52,7 @@ export function useSpaceActions() {
       return { success: true, spaceId }
     } catch (err) {
       console.error('Error creating space:', err)
-      alert('Failed to create space. Please try again.')
-      return { success: false, error: 'Unknown error occurred' }
+      return { success: false, error: 'Failed to create space. Please try again.' }
     } finally {
       setIsCreating(false)
     }

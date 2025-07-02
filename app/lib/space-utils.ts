@@ -101,46 +101,53 @@ export function generateQRCodeData(spaceId: string, password?: string): string {
   return spaceUrl
 }
 
-// Create a new space in Supabase
+// Create a new space via API (with rate limiting)
 export async function createSpace(options: {
   title?: string
   password?: string
-} = {}): Promise<{ spaceId: string; error?: string }> {
+} = {}): Promise<{ spaceId: string; error?: string; rateLimited?: boolean }> {
   console.log('createSpace function called with options:', options)
   
   try {
-    const spaceId = generateSpaceId()
-    console.log('Generated space ID:', spaceId)
-    
-    const qrCodeData = generateQRCodeData(spaceId, options.password)
-    console.log('Generated QR code data:', qrCodeData)
-    
-    const spaceData: TablesInsert<'spaces'> = {
-      id: spaceId,
-      qr_code_data: qrCodeData,
-      title: options.title || null,
-      password: options.password || null,
-      created_at: new Date().toISOString(),
-      last_accessed: new Date().toISOString()
+    const response = await fetch('/api/create-space', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: options.title || undefined,
+        password: options.password || undefined
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        // Rate limited
+        return { 
+          spaceId: '', 
+          error: result.error || 'Rate limit exceeded',
+          rateLimited: true
+        };
+      }
+      
+      return { 
+        spaceId: '', 
+        error: result.error || `Server error: ${response.status}`
+      };
     }
 
-    console.log('Space data to insert:', spaceData)
-    console.log('Supabase client:', supabase)
-
-    const { data, error } = await supabase
-      .from('spaces')
-      .insert(spaceData)
-      .select()
-      .single()
-
-    console.log('Supabase response - data:', data, 'error:', error)
-
-    if (error) {
-      console.error('Error creating space:', error)
-      return { spaceId, error: error.message }
+    if (!result.success || !result.spaceId) {
+      return { 
+        spaceId: '', 
+        error: result.error || 'Failed to create space'
+      };
     }
 
-    return { spaceId }
+    console.log('Space created successfully with ID:', result.spaceId);
+    return { spaceId: result.spaceId };
+    
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
     console.error('Error creating space:', err)

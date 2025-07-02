@@ -5,9 +5,9 @@ import { RecentSpaces } from "./ui/recent-spaces";
 
 export default function Welcome() {
   return (
-    <div className="flex flex-col items-center justify-start w-full h-full gap-8 px-4 pb-24">
+    <div className="flex flex-col items-center w-full h-full px-4 pb-24">
       {/* Main welcome section */}
-      <div className="flex flex-col items-center justify-center gap-4 mt-16">
+      <div className="flex flex-col items-center justify-center gap-4 mt-auto">
         <img
           src="/wrk-icon-black.svg"
           alt="WrkIn.Space Icon"
@@ -37,7 +37,7 @@ export default function Welcome() {
       </div>
 
       {/* Recently visited spaces */}
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-4xl mt-auto">
         <RecentSpaces />
       </div>
     </div>

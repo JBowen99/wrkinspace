@@ -52,7 +52,17 @@ export function CreateSpaceModal({ children }: CreateSpaceModalProps) {
         setPassword("");
         setError("");
       } else {
-        setError(result?.error || "Failed to create space. Please try again.");
+        // Handle rate limiting with more specific error message
+        if (result?.rateLimited) {
+          setError(
+            result.error ||
+              "Rate limit exceeded. Please wait before creating another space."
+          );
+        } else {
+          setError(
+            result?.error || "Failed to create space. Please try again."
+          );
+        }
       }
     } catch (err) {
       setError("Failed to create space. Please try again.");
@@ -116,7 +126,17 @@ export function CreateSpaceModal({ children }: CreateSpaceModalProps) {
               </p>
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-700">{error}</p>
+                {error.includes("Rate limit") && (
+                  <p className="text-xs text-red-600 mt-1">
+                    This helps prevent spam and keeps the service running
+                    smoothly for everyone.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="mt-6">
