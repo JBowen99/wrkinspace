@@ -27,6 +27,21 @@ export function useSpaceActions() {
       }
 
       console.log('Space created successfully with ID:', spaceId)
+      
+      // If space was created with a password, automatically authenticate the creator
+      if (options.password && typeof window !== "undefined") {
+        try {
+          const stored = localStorage.getItem("wrkinspace_authenticated");
+          const authenticatedSpaces = new Set(stored ? JSON.parse(stored) : []);
+          authenticatedSpaces.add(spaceId);
+          localStorage.setItem("wrkinspace_authenticated", JSON.stringify([...authenticatedSpaces]));
+          console.log('Creator automatically authenticated for new password-protected space:', spaceId);
+        } catch (err) {
+          console.error('Failed to save authentication state for new space:', err);
+          // Don't fail the whole operation for localStorage issues
+        }
+      }
+      
       // Navigate to the new space
       navigate(`/space/${spaceId}`)
       return { success: true, spaceId }
