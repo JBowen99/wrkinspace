@@ -80,7 +80,6 @@ export function SpaceProvider({
     if (!space) return;
 
     try {
-      console.log("Loading pages for space:", space.id);
       const result = await loadPagesForSpace(space.id);
 
       if (result.error) {
@@ -92,7 +91,6 @@ export function SpaceProvider({
       }
 
       setPages(result.pages);
-      console.log("Pages loaded successfully:", result.pages.length);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load pages";
@@ -121,7 +119,6 @@ export function SpaceProvider({
 
       // Add the new page to the pages state
       setPages((prevPages) => [...prevPages, result.page!]);
-      console.log("Page created successfully:", result.page);
       return true;
     } catch (err) {
       const errorMessage =
@@ -150,7 +147,6 @@ export function SpaceProvider({
           page.id === pageId ? { ...page, title: newTitle } : page
         )
       );
-      console.log("Page renamed successfully:", result.page);
       return true;
     } catch (err) {
       const errorMessage =
@@ -172,7 +168,6 @@ export function SpaceProvider({
 
       // Remove the page from the pages state
       setPages((prevPages) => prevPages.filter((page) => page.id !== pageId));
-      console.log("Page deleted successfully");
       return true;
     } catch (err) {
       const errorMessage =
@@ -186,16 +181,13 @@ export function SpaceProvider({
   const loadSpace = async (spaceId: string) => {
     if (!spaceId) return;
 
-    console.log("Loading space:", spaceId);
     setIsLoading(true);
     setError(null);
 
     try {
       const result = await checkSpaceRequirements(spaceId);
-      console.log("Space requirements result:", result);
 
       if (result.error || !result.exists) {
-        console.log("Space not found or error:", result.error);
         setError(result.error || "Space not found");
         setSpace(null);
         setRequiresPassword(false);
@@ -209,9 +201,9 @@ export function SpaceProvider({
         password: null, // We don't expose the actual password
         qr_code_data: "", // This would need to be fetched separately if needed
         created_at: null, // This would need to be fetched separately if needed
+        last_accessed: null, // This would need to be fetched separately if needed
       };
 
-      console.log("Space loaded successfully:", spaceData);
       setSpace(spaceData);
       setRequiresPassword(result.requiresPassword);
 
@@ -222,13 +214,8 @@ export function SpaceProvider({
       if (result.requiresPassword) {
         const authenticatedSpaces = getAuthenticatedSpaces();
         setIsAuthenticated(authenticatedSpaces.has(spaceId));
-        console.log(
-          "Password required, authenticated:",
-          authenticatedSpaces.has(spaceId)
-        );
       } else {
         setIsAuthenticated(true);
-        console.log("No password required, user is authenticated");
       }
 
       // Load pages for this space - but only after setting space
@@ -252,11 +239,8 @@ export function SpaceProvider({
       return false;
     }
 
-    console.log("Authenticating space:", space.id);
-
     try {
       const result = await joinSpaceSecure(space.id, password);
-      console.log("joinSpaceSecure result:", result);
 
       if (result.success) {
         // Add to authenticated spaces
@@ -265,11 +249,9 @@ export function SpaceProvider({
         saveAuthenticatedSpaces(authenticatedSpaces);
 
         setIsAuthenticated(true);
-        console.log("Authentication successful, user authenticated");
         return true;
       }
 
-      console.log("Authentication failed:", result.error);
       return false;
     } catch (error) {
       console.error("Authentication failed with exception:", error);

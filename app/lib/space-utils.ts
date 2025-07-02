@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import type { TablesInsert, Tables } from '../../database.types'
 
 // Helper function to check if we should log (not in production)
-const shouldLog = () => typeof process !== 'undefined' && process.env.NODE_ENV !== 'production'
+const shouldLog = () => false
 
 // Recently visited spaces management
 export interface RecentSpace {

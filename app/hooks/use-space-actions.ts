@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router'
 import { createSpace } from '~/lib/space-utils'
 import { SpaceContext } from "~/contexts/space-context";
 
+// Helper function to check if we should log (not in production)
+const shouldLog = () => false
+
 export function useSpaceActions() {
   const [isCreating, setIsCreating] = useState(false)
   const navigate = useNavigate()
@@ -10,13 +13,13 @@ export function useSpaceActions() {
   // Conditionally use space context - only if we're inside a SpaceProvider
   const spaceContext = useContext(SpaceContext);
 
-  console.log('useSpaceActions hook initialized')
+  if (shouldLog()) console.log('useSpaceActions hook initialized')
 
   const handleCreateSpace = async (options: { title?: string; password?: string } = {}) => {
-    console.log('handleCreateSpace called with options:', options)
+    if (shouldLog()) console.log('handleCreateSpace called with options:', options)
     setIsCreating(true)
     try {
-      console.log('Creating space...')
+      if (shouldLog()) console.log('Creating space...')
       const { spaceId, error, rateLimited } = await createSpace(options)
       
       if (error) {
@@ -31,7 +34,7 @@ export function useSpaceActions() {
         return { success: false, error }
       }
 
-      console.log('Space created successfully with ID:', spaceId)
+      if (shouldLog()) console.log('Space created successfully with ID:', spaceId)
       
       // If space was created with a password, automatically authenticate the creator
       if (options.password && typeof window !== "undefined") {
@@ -40,7 +43,7 @@ export function useSpaceActions() {
           const authenticatedSpaces = new Set(stored ? JSON.parse(stored) : []);
           authenticatedSpaces.add(spaceId);
           localStorage.setItem("wrkinspace_authenticated", JSON.stringify([...authenticatedSpaces]));
-          console.log('Creator automatically authenticated for new password-protected space:', spaceId);
+          if (shouldLog()) console.log('Creator automatically authenticated for new password-protected space:', spaceId);
         } catch (err) {
           console.error('Failed to save authentication state for new space:', err);
           // Don't fail the whole operation for localStorage issues
@@ -59,7 +62,7 @@ export function useSpaceActions() {
   }
 
   const handleJoinSpace = async (spaceId?: string, password?: string) => {
-    console.log('handleJoinSpace called with spaceId:', spaceId, 'password:', password ? '[REDACTED]' : 'none')
+    if (shouldLog()) console.log('handleJoinSpace called with spaceId:', spaceId, 'password:', password ? '[REDACTED]' : 'none')
     if (!spaceId) {
       // Prompt for space ID if not provided
       const inputSpaceId = prompt('Enter Space ID:')
@@ -85,14 +88,14 @@ export function useSpaceActions() {
           const authenticatedSpaces = new Set(stored ? JSON.parse(stored) : []);
           authenticatedSpaces.add(spaceId);
           localStorage.setItem("wrkinspace_authenticated", JSON.stringify([...authenticatedSpaces]));
-          console.log('Authentication state saved for space:', spaceId);
+          if (shouldLog()) console.log('Authentication state saved for space:', spaceId);
         } catch (err) {
           console.error('Failed to save authentication state:', err);
           // Don't fail the whole operation for localStorage issues
         }
       }
 
-      console.log('Successfully validated space access, navigating to space:', spaceId)
+      if (shouldLog()) console.log('Successfully validated space access, navigating to space:', spaceId)
       navigate(`/space/${spaceId}`)
     } catch (error) {
       console.error('Error joining space:', error)
@@ -124,7 +127,7 @@ export function useSpaceActions() {
 
     const success = await createPage(title, type);
     if (success) {
-      console.log(`${typeNames[type]} created successfully`);
+      if (shouldLog()) console.log(`${typeNames[type]} created successfully`);
     }
     
     return success;
@@ -145,7 +148,7 @@ export function useSpaceActions() {
 
     const success = await renamePage(pageId, newTitle.trim());
     if (success) {
-      console.log('Page renamed successfully');
+      if (shouldLog()) console.log('Page renamed successfully');
     }
     
     return success;
@@ -161,7 +164,7 @@ export function useSpaceActions() {
     
     const success = await deletePage(pageId);
     if (success) {
-      console.log('Page deleted successfully');
+      if (shouldLog()) console.log('Page deleted successfully');
     }
     
     return success;

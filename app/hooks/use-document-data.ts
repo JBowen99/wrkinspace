@@ -7,6 +7,9 @@ import {
   autoSaveDocumentBlocks
 } from '~/lib/space-utils';
 
+// Helper function to check if we should log (not in production)
+const shouldLog = () => false
+
 interface UseDocumentDataOptions {
   pageId: string;
   autoSaveEnabled?: boolean;
@@ -44,7 +47,7 @@ export function useDocumentData({
   const loadData = useCallback(async () => {
     if (!pageId) return;
 
-    console.log('Loading document data for page:', pageId);
+    if (shouldLog()) console.log('Loading document data for page:', pageId);
     setIsLoading(true);
     setError(null);
 
@@ -59,16 +62,16 @@ export function useDocumentData({
       }
 
       const plateValue = convertBlocksToPlateValue(result.blocks);
-      console.log('Converted blocks to Plate value:', plateValue);
-      console.log('Converted blocks to Plate value (detailed):', JSON.stringify(plateValue, null, 2));
-      console.log('Setting editor value to:', plateValue);
+      if (shouldLog()) console.log('Converted blocks to Plate value:', plateValue);
+      if (shouldLog()) console.log('Converted blocks to Plate value (detailed):', JSON.stringify(plateValue, null, 2));
+      if (shouldLog()) console.log('Setting editor value to:', plateValue);
       setValue(plateValue);
       
       if (result.blocks.length > 0) {
         setLastSaved('Loaded from database');
-        console.log('Successfully loaded', result.blocks.length, 'blocks from database');
+        if (shouldLog()) console.log('Successfully loaded', result.blocks.length, 'blocks from database');
       } else {
-        console.log('No blocks found in database, using default content');
+        if (shouldLog()) console.log('No blocks found in database, using default content');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load document';
@@ -86,7 +89,7 @@ export function useDocumentData({
       return false;
     }
 
-    console.log('Saving document data for page:', pageId);
+    if (shouldLog()) console.log('Saving document data for page:', pageId);
     setIsSaving(true);
     setError(null);
 
@@ -99,7 +102,7 @@ export function useDocumentData({
         return false;
       }
 
-      console.log('Document saved successfully');
+      if (shouldLog()) console.log('Document saved successfully');
       setLastSaved(new Date().toLocaleTimeString());
       return true;
     } catch (err) {

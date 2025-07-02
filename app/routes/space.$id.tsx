@@ -168,13 +168,13 @@ function SpaceContent() {
               </Link>
               <div className="flex flex-row items-center gap-2 ml-auto">
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <ThemeToggle />
                   </TooltipTrigger>
                   <TooltipContent>Toggle Theme</TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <ShareSpaceModal>
                       <Button variant="outline" className="h-8 w-8">
                         <QrCode />
@@ -281,7 +281,7 @@ function SpaceContent() {
             <div className="flex items-center justify-between text-muted-foreground">
               <p className="text-xs">Space ID: {space.id}</p>
               <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger asChild>
                   <SpaceSettingsModal>
                     <Button variant="ghost" size="icon" className="h-6 w-6">
                       <Settings className="h-3 w-3" />
