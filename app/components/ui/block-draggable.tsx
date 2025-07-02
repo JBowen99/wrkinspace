@@ -265,8 +265,8 @@ const DragHandle = React.memo(function DragHandle({
         </div>
       </TooltipTrigger>
       <TooltipContent>
-        Right click <span className="text-muted-foreground">for options</span>
-        <br /> Drag <span className="text-muted-foreground">to move</span>
+        Right click <span className="">for options</span>
+        <br /> Drag <span className="">to move</span>
       </TooltipContent>
     </Tooltip>
   );

@@ -232,10 +232,10 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
   }
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="relative h-screen w-full overflow-hidden bg-background">
       {/* Fixed Toolbar */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2">
+        <div className=" rounded-lg shadow-lg border bg-sidebar p-2">
           <Toolbar className="gap-1">
             <ToolbarGroup>
               <ToolbarButton
@@ -264,27 +264,7 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
               >
                 <Type className="h-4 w-4" />
               </ToolbarButton>
-
-              <ToolbarButton
-                pressed={selectedTool === "rectangle"}
-                onClick={() => handleToolSelect("rectangle")}
-                tooltip="Add Rectangle"
-                size="sm"
-              >
-                <Square className="h-4 w-4" />
-              </ToolbarButton>
-
-              <ToolbarButton
-                pressed={selectedTool === "circle"}
-                onClick={() => handleToolSelect("circle")}
-                tooltip="Add Circle"
-                size="sm"
-              >
-                <Circle className="h-4 w-4" />
-              </ToolbarButton>
             </ToolbarGroup>
-
-            <ToolbarSeparator />
 
             <ToolbarGroup>
               <ToolbarButton onClick={handleZoomIn} tooltip="Zoom In" size="sm">
@@ -308,17 +288,14 @@ export default function MoodboardEditor({ pageId }: MoodboardEditorProps) {
               </ToolbarButton>
             </ToolbarGroup>
 
-            <ToolbarSeparator />
-
             <ToolbarGroup>
               <ToolbarButton
                 onClick={deleteSelectedItem}
                 tooltip="Delete Selected"
                 size="sm"
-                variant="outline"
                 disabled={!selectedItemId}
               >
-                <Trash2 className="h-4 w-4 text-red-500" />
+                <Trash2 className="h-4 w-4 text-destructive" />
               </ToolbarButton>
             </ToolbarGroup>
           </Toolbar>

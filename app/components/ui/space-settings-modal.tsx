@@ -20,18 +20,18 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
   const { space } = useSpace();
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [password, setPassword] = useState("");
+  // const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const { updateTitle, updatePassword, isLoading, error, clearError } =
+  const { updateTitle, /* updatePassword, */ isLoading, error, clearError } =
     useSpaceSettings(space?.id || "");
 
   // Initialize form values when modal opens or space changes
   useEffect(() => {
     if (space && isOpen) {
       setTitle(space.title || "");
-      setPassword(space.password || "");
+      // setPassword(space.password || "");
       setHasChanges(false);
     }
   }, [space, isOpen]);
@@ -40,10 +40,10 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
   useEffect(() => {
     if (space) {
       const titleChanged = title !== (space.title || "");
-      const passwordChanged = password !== (space.password || "");
-      setHasChanges(titleChanged || passwordChanged);
+      // const passwordChanged = password !== (space.password || "");
+      setHasChanges(titleChanged /* || passwordChanged */);
     }
-  }, [title, password, space]);
+  }, [title, /* password, */ space]);
 
   const handleSave = async () => {
     if (!space) return;
@@ -58,10 +58,10 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
     }
 
     // Update password if changed
-    if (password !== (space.password || "")) {
-      const passwordSuccess = await updatePassword(password || undefined);
-      if (!passwordSuccess) success = false;
-    }
+    // if (password !== (space.password || "")) {
+    //   const passwordSuccess = await updatePassword(password || undefined);
+    //   if (!passwordSuccess) success = false;
+    // }
 
     if (success) {
       setIsOpen(false);
@@ -74,7 +74,7 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
   const handleCancel = () => {
     if (space) {
       setTitle(space.title || "");
-      setPassword(space.password || "");
+      // setPassword(space.password || "");
       setHasChanges(false);
     }
     clearError();
@@ -101,7 +101,43 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
             />
           </div>
 
-          <div className="space-y-2">
+          {space?.password && (
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={space.password}
+                  readOnly
+                  className="bg-muted"
+                  // onChange={(e) => setPassword(e.target.value)}
+                  // placeholder="Enter password to protect this space"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {/* <p className="text-xs text-muted-foreground">
+                Leave empty to remove password protection
+              </p> */}
+            </div>
+          )}
+
+          {/* Original password editing section - commented out */}
+          {/* <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">
               Password (optional)
             </label>
@@ -130,7 +166,7 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
             <p className="text-xs text-muted-foreground">
               Leave empty to remove password protection
             </p>
-          </div>
+          </div> */}
 
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-2 rounded">

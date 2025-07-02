@@ -40,7 +40,7 @@ body {
   --muted-foreground: hsl(246.0000 4.4643% 43.9216%);
   --accent: hsl(255.5556 49.0909% 89.2157%);
   --accent-foreground: hsl(249.2308 10.0775% 25.2941%);
-  --destructive: hsl(30.0000 42.2018% 57.2549%);
+  --destructive: hsl(0, 42%, 57%);
   --destructive-foreground: hsl(0 0% 100%);
   --border: hsl(250.0000 5.7692% 79.6078%);
   --input: hsl(250.0000 5.7692% 79.6078%);
@@ -87,7 +87,7 @@ body {
   --muted-foreground: hsl(246.0000 5.1020% 61.5686%);
   --accent: hsl(249.2308 10.0775% 25.2941%);
   --accent-foreground: hsl(250.0000 5.7692% 79.6078%);
-  --destructive: hsl(30.0000 42.2018% 57.2549%);
+  --destructive: hsl(0, 42%, 57%);
   --destructive-foreground: hsl(250.0000 22.2222% 10.5882%);
   --border: hsl(245.4545 6.6667% 32.3529%);
   --input: hsl(245.4545 6.6667% 32.3529%);
