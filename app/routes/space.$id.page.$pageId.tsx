@@ -66,19 +66,11 @@ export default function SpacePage() {
   };
 
   if (currentPage.type === "kanban") {
-    return (
-      <div className="flex flex-col items-start justify-center h-full w-full overflow-hidden">
-        <KanbanEditor pageId={pageId!} />
-      </div>
-    );
+    return <KanbanEditor pageId={pageId!} />;
   }
 
   if (currentPage.type === "moodboard") {
-    return (
-      <div className="flex flex-col items-start justify-center h-full w-full">
-        <MoodboardEditor pageId={pageId!} />
-      </div>
-    );
+    return <MoodboardEditor pageId={pageId!} />;
   }
 
   if (currentPage.type === "document") {

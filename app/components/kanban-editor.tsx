@@ -17,7 +17,7 @@ import {
 } from "~/components/ui/dialog";
 import { FixedToolbar } from "~/components/ui/fixed-toolbar";
 import { ToolbarButton, ToolbarSeparator } from "~/components/ui/toolbar";
-import { Plus, CreditCard } from "lucide-react";
+import { Plus, CreditCard, GripVertical } from "lucide-react";
 import { cn } from "~/lib/utils";
 import {
   loadKanbanData,
@@ -558,23 +558,21 @@ export default function KanbanEditor({ pageId }: KanbanEditorProps) {
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="w-full h-full flex flex-col bg-background">
+      <div className="w-full h-full flex flex-col bg-background ">
         {/* Fixed Toolbar Section */}
-        <div className="flex-shrink-0 flex justify-center py-4 bg-background">
-          <FixedToolbar className="justify-center rounded-lg">
-            <ToolbarButton onClick={() => setShowAddColumnDialog(true)}>
-              <Plus />
-              Add Column
-            </ToolbarButton>
-            <ToolbarButton onClick={() => setShowAddCardDialog(true)}>
-              <Plus />
-              Add Card
-            </ToolbarButton>
-          </FixedToolbar>
+        <div className="flex flex-row justify-center py-4 bg-background gap-4">
+          <Button onClick={() => setShowAddColumnDialog(true)}>
+            <Plus />
+            Add Column
+          </Button>
+          <Button onClick={() => setShowAddCardDialog(true)}>
+            <Plus />
+            Add Card
+          </Button>
         </div>
 
         {/* Kanban Board - Horizontally Scrollable */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden mt-8">
+        <div className="flex flex-row overflow-x-scroll h-full">
           {columns.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -610,7 +608,7 @@ export default function KanbanEditor({ pageId }: KanbanEditorProps) {
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className="flex gap-6 h-full p-6"
+                  className="flex gap-6 h-full px-6 pb-6"
                   style={{ minWidth: "max-content" }}
                 >
                   {columns.map((column, index) => (
@@ -636,33 +634,25 @@ export default function KanbanEditor({ pageId }: KanbanEditorProps) {
                             )}
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 w-full">
                                 <div
                                   {...provided.dragHandleProps}
                                   className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted/50 transition-colors"
                                   title="Drag to reorder column"
                                 >
-                                  <svg
-                                    className="size-4 text-muted-foreground"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                  </svg>
+                                  <GripVertical className="size-4 text-muted-foreground" />
                                 </div>
-                                <h3
-                                  className="font-semibold text-card-foreground cursor-pointer hover:text-ring transition-colors"
+                                <div
+                                  className="flex flex-row w-full cursor-pointer text-card-foreground hover:text-ring transition-colors"
                                   onClick={() => handleEditColumn(column)}
-                                  title="Click to edit column name"
                                 >
-                                  {column.title}
-                                </h3>
+                                  <h3
+                                    className="font-semibold "
+                                    title="Click to edit column name"
+                                  >
+                                    {column.title}
+                                  </h3>
+                                </div>
                               </div>
                               <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-1">
                                 {column.cards.length}

@@ -159,7 +159,7 @@ function SpaceContent() {
   // Show space content if user is authenticated or no password required
   return (
     <>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full scrollbar-hide">
         <Sidebar variant="sidebar">
           <SidebarHeader className="pb-0 mb-0">
             <div className="flex flex-row items-center justify-start gap-2">
@@ -190,9 +190,9 @@ function SpaceContent() {
             </p>
           </SidebarHeader>
 
-          <SidebarContent >
+          <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupContent className="flex flex-col gap-1">
+              <SidebarGroupContent className="flex flex-col gap-1 scrollbar-hide">
                 {pages.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-2">
                     No pages yet
@@ -294,10 +294,8 @@ function SpaceContent() {
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset>
-          <div className="flex flex-col h-screen w-full overflow-hidden">
-            <Outlet />
-          </div>
+        <SidebarInset className="scrollbar-hide overflow-hidden">
+          <Outlet />
         </SidebarInset>
       </div>
 
