@@ -101,48 +101,6 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
             />
           </div>
 
-          {/* Password section removed for security - passwords should never be displayed in UI */}
-          {/* Password editing functionality has been disabled to prevent password exposure */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
-              <strong>Security Notice:</strong> Password management has been disabled 
-              for security reasons. Passwords are encrypted and cannot be displayed or 
-              edited through this interface.
-            </p>
-          </div>
-
-          {/* Original password editing section - commented out */}
-          {/* <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password (optional)
-            </label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password to protect this space"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Leave empty to remove password protection
-            </p>
-          </div> */}
-
           {error && (
             <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
               {error}
