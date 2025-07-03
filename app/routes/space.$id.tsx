@@ -12,6 +12,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
+  SidebarTrigger,
 } from "~/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -295,6 +296,36 @@ function SpaceContent() {
         </Sidebar>
 
         <SidebarInset className="scrollbar-hide overflow-hidden">
+          {/* Mobile sidebar trigger - only visible on small screens */}
+          <div className="flex md:hidden items-center gap-2 p-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <SidebarTrigger className="h-8 w-8 shrink-0" />
+            <h2 className="text-lg font-semibold truncate flex-1">
+              {space.title || "Untitled Space"}
+            </h2>
+            <div className="flex items-center gap-1 shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <ShareSpaceModal>
+                    <Button variant="outline" size="icon" className="h-8 w-8">
+                      <QrCode className="h-4 w-4" />
+                    </Button>
+                  </ShareSpaceModal>
+                </TooltipTrigger>
+                <TooltipContent>Share Space</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SpaceSettingsModal>
+                    <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </SpaceSettingsModal>
+                </TooltipTrigger>
+                <TooltipContent>Space Settings</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+          
           <Outlet />
         </SidebarInset>
       </div>

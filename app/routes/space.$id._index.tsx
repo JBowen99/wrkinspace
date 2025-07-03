@@ -33,7 +33,7 @@ export default function SpacePageHome() {
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col lg:flex-row gap-4 justify-center">
           <Button
             size="lg"
             className="flex items-center gap-2"

@@ -15,7 +15,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function Home({ loaderData }: Route.ComponentProps) {
   return (
-    <div className="flex flex-col items-center justify-start h-screen w-full">
+    <div className="flex flex-col min-h-screen w-full">
       <Header />
       <Welcome />
     </div>

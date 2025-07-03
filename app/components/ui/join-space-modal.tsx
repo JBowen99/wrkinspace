@@ -123,7 +123,7 @@ export function JoinSpaceModal({ children }: JoinSpaceModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-1rem)] mx-2">
         <DialogHeader>
           <DialogTitle>Join a Space</DialogTitle>
           <DialogDescription>
@@ -151,22 +151,23 @@ export function JoinSpaceModal({ children }: JoinSpaceModalProps) {
                   placeholder="Enter space ID..."
                   value={spaceId}
                   onChange={(e) => setSpaceId(e.target.value)}
-                  className={error ? "border-red-500" : ""}
+                  className={error ? "border-red-500 min-h-11" : "min-h-11"}
                   disabled={isChecking}
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
             </div>
-            <DialogFooter className="mt-6">
+            <DialogFooter className="mt-6 gap-3">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsOpen(false)}
                 disabled={isChecking}
+                className="min-h-11"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isChecking}>
+              <Button type="submit" disabled={isChecking} className="min-h-11">
                 {isChecking ? "Checking..." : "Join Space"}
               </Button>
             </DialogFooter>
@@ -195,7 +196,7 @@ export function JoinSpaceModal({ children }: JoinSpaceModalProps) {
                     placeholder="Enter space password..."
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className={error ? "border-red-500" : ""}
+                    className={error ? "border-red-500 min-h-11" : "min-h-11"}
                     autoFocus
                   />
                 </div>
@@ -203,7 +204,7 @@ export function JoinSpaceModal({ children }: JoinSpaceModalProps) {
 
               {error && <p className="text-sm text-red-500">{error}</p>}
             </div>
-            <DialogFooter className="mt-6">
+            <DialogFooter className="mt-6 gap-3">
               <Button
                 type="button"
                 variant="outline"
@@ -212,10 +213,13 @@ export function JoinSpaceModal({ children }: JoinSpaceModalProps) {
                   setPassword("");
                   setError("");
                 }}
+                className="min-h-11"
               >
                 Back
               </Button>
-              <Button type="submit">Join Space</Button>
+              <Button type="submit" className="min-h-11">
+                Join Space
+              </Button>
             </DialogFooter>
           </form>
         )}

@@ -78,35 +78,35 @@ export function RecentSpaces({ className }: RecentSpacesProps) {
   return (
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
-        <Clock className="w-5 h-5 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">Recent Spaces:</h2>
+        <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+        <h2 className="text-lg sm:text-xl font-semibold">Recent Spaces:</h2>
       </div>
       
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {recentSpaces.map((space) => (
           <Card 
             key={space.id} 
-            className="cursor-pointer hover:shadow-md transition-shadow relative group"
+            className="cursor-pointer hover:shadow-md transition-shadow relative group min-h-[100px] sm:min-h-[80px]"
             onClick={() => handleSpaceClick(space.id)}
           >
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
-                <CardTitle className="text-sm font-medium truncate flex-1 mr-2">
+                <CardTitle className="text-sm sm:text-base font-medium truncate flex-1 mr-2">
                   {space.title}
                 </CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 shrink-0"
+                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity h-8 w-8 sm:h-6 sm:w-6 p-0 shrink-0"
                   onClick={(e) => handleRemoveSpace(space.id, e)}
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-4 h-4 sm:w-3 sm:h-3" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-mono">
+                <p className="text-xs text-muted-foreground font-mono break-all">
                   ID: {space.id}
                 </p>
                 <p className="text-xs text-muted-foreground">

@@ -82,7 +82,7 @@ export function CreateSpaceModal({ children }: CreateSpaceModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-1rem)] mx-2">
         <DialogHeader>
           <DialogTitle>Create New Space</DialogTitle>
           <DialogDescription>
@@ -103,6 +103,7 @@ export function CreateSpaceModal({ children }: CreateSpaceModalProps) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={isCreating}
+                className="min-h-11"
               />
               <p className="text-xs text-muted-foreground">
                 Give your space a meaningful name to help identify it
@@ -120,6 +121,7 @@ export function CreateSpaceModal({ children }: CreateSpaceModalProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isCreating}
+                className="min-h-11"
               />
               <p className="text-xs text-muted-foreground">
                 Set a password to restrict access to your space
@@ -139,16 +141,17 @@ export function CreateSpaceModal({ children }: CreateSpaceModalProps) {
             )}
           </div>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="mt-6 gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsOpen(false)}
               disabled={isCreating}
+              className="min-h-11"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating}>
+            <Button type="submit" disabled={isCreating} className="min-h-11">
               {isCreating ? "Creating..." : "Create Space"}
             </Button>
           </DialogFooter>
