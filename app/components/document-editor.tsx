@@ -17,13 +17,14 @@ import { Editor, EditorContainer } from "~/components/ui/editor";
 import { FixedToolbar } from "~/components/ui/fixed-toolbar";
 import { H1Element, H2Element, H3Element } from "~/components/ui/heading-node";
 import { MarkToolbarButton } from "~/components/ui/mark-toolbar-button";
-import { ToolbarButton } from "~/components/ui/toolbar";
+import { ToolbarButton, ToolbarSeparator, Toolbar } from "~/components/ui/toolbar";
 import { BlockMenuKit } from "~/components/block-menu-kit";
 import { BlockPlaceholderKit } from "~/components/block-placeholder-kit";
 import { MarkdownKit } from "~/components/markdown-kit";
 import { Button } from "~/components/ui/button";
-import { Save, RefreshCw } from "lucide-react";
+import { Save, RefreshCw, Type, Bold, Italic, Underline, Quote } from "lucide-react";
 import { useDocumentData } from "~/hooks/use-document-data";
+import { useIsMobile } from "~/hooks/use-mobile";
 import { useEffect } from "react";
 
 interface DocumentEditorProps {
@@ -49,6 +50,8 @@ export default function DocumentEditor({
     autoSaveEnabled,
     autoSaveDelayMs: 2000,
   });
+
+  const isMobile = useIsMobile();
 
   const editor = usePlateEditor({
     plugins: [
@@ -101,10 +104,10 @@ export default function DocumentEditor({
   if (isLoading) {
     return (
       <div className="flex flex-col h-full w-full">
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your document...</p>
+            <p className="text-muted-foreground text-sm">Loading your document...</p>
           </div>
         </div>
       </div>
@@ -115,7 +118,7 @@ export default function DocumentEditor({
     return (
       <div className="flex flex-col h-full w-full">
         <div className="border-b">
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-between p-3 sm:p-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-red-600">
                 Error loading document
@@ -123,18 +126,20 @@ export default function DocumentEditor({
             </div>
             <Button variant="outline" size="sm" onClick={refetch}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              {isMobile ? "Retry" : "Retry"}
             </Button>
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center p-4">
           <div className="text-center">
-            <div className="text-6xl mb-4">❌</div>
-            <h2 className="text-xl font-semibold mb-2">
+            <div className="text-4xl sm:text-6xl mb-4">❌</div>
+            <h2 className="text-lg sm:text-xl font-semibold mb-2">
               Failed to load document
             </h2>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={refetch}>Try Again</Button>
+            <p className="text-muted-foreground mb-4 text-sm px-4">{error}</p>
+            <Button onClick={refetch} size={isMobile ? "sm" : "default"}>
+              Try Again
+            </Button>
           </div>
         </div>
       </div>
@@ -144,57 +149,102 @@ export default function DocumentEditor({
   return (
     <div className="flex flex-col h-full w-full">
       <Plate editor={editor} onChange={handleChange}>
-        <FixedToolbar className="justify-start rounded-t-lg">
-          {/* Element Toolbar Buttons */}
-          <ToolbarButton onClick={() => editor.tf.h1.toggle()}>
-            H1
-          </ToolbarButton>
-          <ToolbarButton onClick={() => editor.tf.h2.toggle()}>
-            H2
-          </ToolbarButton>
-          <ToolbarButton onClick={() => editor.tf.h3.toggle()}>
-            H3
-          </ToolbarButton>
-          <ToolbarButton onClick={() => editor.tf.blockquote.toggle()}>
-            Quote
-          </ToolbarButton>
-          {/* Mark Toolbar Buttons */}
-          <MarkToolbarButton nodeType="bold" tooltip="Bold (⌘+B)">
-            B
-          </MarkToolbarButton>
-          <MarkToolbarButton nodeType="italic" tooltip="Italic (⌘+I)">
-            I
-          </MarkToolbarButton>
-          <MarkToolbarButton nodeType="underline" tooltip="Underline (⌘+U)">
-            U
-          </MarkToolbarButton>
-
-          {/* Save Controls */}
-          <div className="ml-auto flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {isSaving ? "Saving..." : "Save"}
-            </Button>
-            {/*
-            {lastSaved && (
-              <span className="text-xs text-muted-foreground">{lastSaved}</span>
-            )}
-            {error && <span className="text-xs text-red-600">Save error</span>}
-            */}
+        {/* Mobile-optimized toolbar */}
+        {isMobile ? (
+          <div className="sticky top-0 z-50 border-b bg-background">
+            <div className="flex items-center justify-between p-2 gap-2">
+              {/* Essential formatting buttons wrapped in Toolbar */}
+              <Toolbar className="flex items-center gap-1 overflow-x-auto">
+                <MarkToolbarButton nodeType="bold" tooltip="Bold" size="sm">
+                  <Bold className="h-4 w-4" />
+                </MarkToolbarButton>
+                <MarkToolbarButton nodeType="italic" tooltip="Italic" size="sm">
+                  <Italic className="h-4 w-4" />
+                </MarkToolbarButton>
+                <MarkToolbarButton nodeType="underline" tooltip="Underline" size="sm">
+                  <Underline className="h-4 w-4" />
+                </MarkToolbarButton>
+                <ToolbarSeparator />
+                <ToolbarButton onClick={() => editor.tf.h1.toggle()} size="sm">
+                  <Type className="h-4 w-4" />
+                </ToolbarButton>
+                <ToolbarButton onClick={() => editor.tf.blockquote.toggle()} size="sm">
+                  <Quote className="h-4 w-4" />
+                </ToolbarButton>
+              </Toolbar>
+              
+              {/* Save button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="shrink-0"
+              >
+                {isSaving ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
-        </FixedToolbar>
+        ) : (
+          <FixedToolbar className="justify-start rounded-t-lg">
+            {/* Element Toolbar Buttons */}
+            <ToolbarButton onClick={() => editor.tf.h1.toggle()}>
+              H1
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.tf.h2.toggle()}>
+              H2
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.tf.h3.toggle()}>
+              H3
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.tf.blockquote.toggle()}>
+              Quote
+            </ToolbarButton>
+            {/* Mark Toolbar Buttons */}
+            <MarkToolbarButton nodeType="bold" tooltip="Bold (⌘+B)">
+              B
+            </MarkToolbarButton>
+            <MarkToolbarButton nodeType="italic" tooltip="Italic (⌘+I)">
+              I
+            </MarkToolbarButton>
+            <MarkToolbarButton nodeType="underline" tooltip="Underline (⌘+U)">
+              U
+            </MarkToolbarButton>
 
-        <EditorContainer className="flex-1 pt-24">
-          <Editor placeholder="Type your amazing content here..." />
+            {/* Save Controls */}
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+              {/*
+              {lastSaved && (
+                <span className="text-xs text-muted-foreground">{lastSaved}</span>
+              )}
+              {error && <span className="text-xs text-red-600">Save error</span>}
+              */}
+            </div>
+          </FixedToolbar>
+        )}
+
+        <EditorContainer className={`flex-1 ${isMobile ? "pt-0" : "pt-24"}`}>
+          <Editor 
+            placeholder="Type your amazing content here..." 
+            className={isMobile ? "pl-8 pr-3 py-3 text-base" : ""}
+          />
         </EditorContainer>
       </Plate>
     </div>
