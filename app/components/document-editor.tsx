@@ -17,15 +17,18 @@ import { Editor, EditorContainer } from "~/components/ui/editor";
 import { FixedToolbar } from "~/components/ui/fixed-toolbar";
 import { H1Element, H2Element, H3Element } from "~/components/ui/heading-node";
 import { MarkToolbarButton } from "~/components/ui/mark-toolbar-button";
-import { ToolbarButton, ToolbarSeparator, Toolbar } from "~/components/ui/toolbar";
+import { ToolbarButton } from "~/components/ui/toolbar";
 import { BlockMenuKit } from "~/components/block-menu-kit";
 import { BlockPlaceholderKit } from "~/components/block-placeholder-kit";
 import { MarkdownKit } from "~/components/markdown-kit";
 import { Button } from "~/components/ui/button";
-import { Save, RefreshCw, Type, Bold, Italic, Underline, Quote } from "lucide-react";
+import { Save, RefreshCw } from "lucide-react";
 import { useDocumentData } from "~/hooks/use-document-data";
-import { useIsMobile } from "~/hooks/use-mobile";
 import { useEffect } from "react";
+import { YjsPlugin } from "@platejs/yjs/react";
+import { RemoteCursorOverlay } from "~/components/ui/remote-cursor-overlay";
+
+import { useMounted } from "~/hooks/use-mounted"; // Or your own mounted check
 
 interface DocumentEditorProps {
   pageId: string;
@@ -51,8 +54,6 @@ export default function DocumentEditor({
     autoSaveDelayMs: 2000,
   });
 
-  const isMobile = useIsMobile();
-
   const editor = usePlateEditor({
     plugins: [
       BoldPlugin,
@@ -66,22 +67,60 @@ export default function DocumentEditor({
       ...BlockMenuKit,
       ...BlockPlaceholderKit,
       ...MarkdownKit,
+      YjsPlugin.configure({
+        render: {
+          afterEditable: RemoteCursorOverlay,
+        },
+        options: {
+          // Configure local user cursor appearance
+          cursors: {
+            data: {
+              name: "Anonymous", // Replace with dynamic user name
+              color: "#aabbcc", // Replace with dynamic user color
+            },
+          },
+          // Configure providers. All providers share the same Y.Doc and Awareness instance.
+          providers: [
+            // Example: WebRTC provider (can be used alongside Hocuspocus)
+            {
+              type: "webrtc",
+              options: {
+                roomName: pageId, // Must match the document identifier
+                signaling: [import.meta.env.VITE_SIGNALING_SERVER_URL], // Optional: Your signaling server URLs
+              },
+            },
+          ],
+        },
+      }),
     ],
-    value,
+    // Important: Skip Plate's default initialization when using Yjs
+    skipInitialization: true,
   });
 
-  // Debug: Log when editor value changes
-  console.log("DocumentEditor render - current value:", value);
-  console.log("DocumentEditor render - isLoading:", isLoading);
+  const mounted = useMounted();
+
+  useEffect(() => {
+    // Ensure component is mounted and editor is ready
+    if (!mounted) return;
+
+    // Initialize Yjs connection, sync document, and set initial editor state
+    editor.getApi(YjsPlugin).yjs.init({
+      id: pageId, // Unique identifier for the Yjs document
+      value: value, // Initial content if the Y.Doc is empty
+    });
+
+    // Clean up: Destroy connection when component unmounts
+    return () => {
+      editor.getApi(YjsPlugin).yjs.destroy();
+    };
+  }, [editor, mounted]);
 
   // Update editor content when value loads from database
   useEffect(() => {
     if (!isLoading && value && value.length > 0) {
-      console.log("Setting editor value after load:", value);
       // Only update if the editor content is different to avoid loops
       const currentValue = editor.children;
       if (JSON.stringify(currentValue) !== JSON.stringify(value)) {
-        console.log("Editor content differs from loaded data, updating...");
         editor.tf.setValue(value);
       }
     }
@@ -104,10 +143,20 @@ export default function DocumentEditor({
   if (isLoading) {
     return (
       <div className="flex flex-col h-full w-full">
-        <div className="flex-1 flex items-center justify-center p-4">
+        <div className="border-b">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span className="text-sm text-muted-foreground">
+                Loading document...
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p className="text-muted-foreground text-sm">Loading your document...</p>
+            <p className="text-muted-foreground">Loading your document...</p>
           </div>
         </div>
       </div>
@@ -118,7 +167,7 @@ export default function DocumentEditor({
     return (
       <div className="flex flex-col h-full w-full">
         <div className="border-b">
-          <div className="flex items-center justify-between p-3 sm:p-4">
+          <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-red-600">
                 Error loading document
@@ -126,20 +175,18 @@ export default function DocumentEditor({
             </div>
             <Button variant="outline" size="sm" onClick={refetch}>
               <RefreshCw className="h-4 w-4 mr-2" />
-              {isMobile ? "Retry" : "Retry"}
+              Retry
             </Button>
           </div>
         </div>
-        <div className="flex-1 flex items-center justify-center p-4">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-4xl sm:text-6xl mb-4">❌</div>
-            <h2 className="text-lg sm:text-xl font-semibold mb-2">
+            <div className="text-6xl mb-4">❌</div>
+            <h2 className="text-xl font-semibold mb-2">
               Failed to load document
             </h2>
-            <p className="text-muted-foreground mb-4 text-sm px-4">{error}</p>
-            <Button onClick={refetch} size={isMobile ? "sm" : "default"}>
-              Try Again
-            </Button>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={refetch}>Try Again</Button>
           </div>
         </div>
       </div>
@@ -149,102 +196,57 @@ export default function DocumentEditor({
   return (
     <div className="flex flex-col h-full w-full">
       <Plate editor={editor} onChange={handleChange}>
-        {/* Mobile-optimized toolbar */}
-        {isMobile ? (
-          <div className="sticky top-0 z-50 border-b bg-background">
-            <div className="flex items-center justify-between p-2 gap-2">
-              {/* Essential formatting buttons wrapped in Toolbar */}
-              <Toolbar className="flex items-center gap-1 overflow-x-auto">
-                <MarkToolbarButton nodeType="bold" tooltip="Bold" size="sm">
-                  <Bold className="h-4 w-4" />
-                </MarkToolbarButton>
-                <MarkToolbarButton nodeType="italic" tooltip="Italic" size="sm">
-                  <Italic className="h-4 w-4" />
-                </MarkToolbarButton>
-                <MarkToolbarButton nodeType="underline" tooltip="Underline" size="sm">
-                  <Underline className="h-4 w-4" />
-                </MarkToolbarButton>
-                <ToolbarSeparator />
-                <ToolbarButton onClick={() => editor.tf.h1.toggle()} size="sm">
-                  <Type className="h-4 w-4" />
-                </ToolbarButton>
-                <ToolbarButton onClick={() => editor.tf.blockquote.toggle()} size="sm">
-                  <Quote className="h-4 w-4" />
-                </ToolbarButton>
-              </Toolbar>
-              
-              {/* Save button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="shrink-0"
-              >
-                {isSaving ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <FixedToolbar className="justify-start rounded-t-lg">
-            {/* Element Toolbar Buttons */}
-            <ToolbarButton onClick={() => editor.tf.h1.toggle()}>
-              H1
-            </ToolbarButton>
-            <ToolbarButton onClick={() => editor.tf.h2.toggle()}>
-              H2
-            </ToolbarButton>
-            <ToolbarButton onClick={() => editor.tf.h3.toggle()}>
-              H3
-            </ToolbarButton>
-            <ToolbarButton onClick={() => editor.tf.blockquote.toggle()}>
-              Quote
-            </ToolbarButton>
-            {/* Mark Toolbar Buttons */}
-            <MarkToolbarButton nodeType="bold" tooltip="Bold (⌘+B)">
-              B
-            </MarkToolbarButton>
-            <MarkToolbarButton nodeType="italic" tooltip="Italic (⌘+I)">
-              I
-            </MarkToolbarButton>
-            <MarkToolbarButton nodeType="underline" tooltip="Underline (⌘+U)">
-              U
-            </MarkToolbarButton>
+        <FixedToolbar className="justify-start rounded-t-lg">
+          {/* Element Toolbar Buttons */}
+          <ToolbarButton onClick={() => editor.tf.h1.toggle()}>
+            H1
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.tf.h2.toggle()}>
+            H2
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.tf.h3.toggle()}>
+            H3
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor.tf.blockquote.toggle()}>
+            Quote
+          </ToolbarButton>
+          {/* Mark Toolbar Buttons */}
+          <MarkToolbarButton nodeType="bold" tooltip="Bold (⌘+B)">
+            B
+          </MarkToolbarButton>
+          <MarkToolbarButton nodeType="italic" tooltip="Italic (⌘+I)">
+            I
+          </MarkToolbarButton>
+          <MarkToolbarButton nodeType="underline" tooltip="Underline (⌘+U)">
+            U
+          </MarkToolbarButton>
 
-            {/* Save Controls */}
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
-              {/*
-              {lastSaved && (
-                <span className="text-xs text-muted-foreground">{lastSaved}</span>
+          {/* Save Controls */}
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
               )}
-              {error && <span className="text-xs text-red-600">Save error</span>}
-              */}
-            </div>
-          </FixedToolbar>
-        )}
+              {isSaving ? "Saving..." : "Save"}
+            </Button>
+            {/*
+            {lastSaved && (
+              <span className="text-xs text-muted-foreground">{lastSaved}</span>
+            )}
+            {error && <span className="text-xs text-red-600">Save error</span>}
+            */}
+          </div>
+        </FixedToolbar>
 
-        <EditorContainer className={`flex-1 ${isMobile ? "pt-0" : "pt-24"}`}>
-          <Editor 
-            placeholder="Type your amazing content here..." 
-            className={isMobile ? "pl-8 pr-3 py-3 text-base" : ""}
-          />
+        <EditorContainer className="flex-1 pt-24">
+          <Editor placeholder="Type your amazing content here..." />
         </EditorContainer>
       </Plate>
     </div>

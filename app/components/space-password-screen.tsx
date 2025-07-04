@@ -27,22 +27,18 @@ export function SpacePasswordScreen({
       return;
     }
 
-    console.log("Attempting to authenticate...");
     setIsSubmitting(true);
     setError("");
 
     try {
       const success = await onPasswordSubmit(password);
-      console.log("Authentication result:", success);
 
       if (success) {
         // Reset form on success
         setPassword("");
         setError("");
-        console.log("Authentication successful!");
       } else {
         setError("Incorrect password. Please try again.");
-        console.log("Authentication failed - incorrect password");
       }
     } catch (err) {
       console.error("Authentication error:", err);
