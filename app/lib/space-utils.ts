@@ -392,21 +392,86 @@ export async function deletePage(
   error?: string;
 }> {
   try {
-    const { error } = await supabase
+    console.log('🗑️ Attempting to delete page with ID:', pageId);
+    
+    // First check if the page exists
+    const { data: existingPage, error: checkError } = await supabase
+      .from('pages')
+      .select('id, title, space_id')
+      .eq('id', pageId)
+      .single();
+
+    if (checkError) {
+      console.error('❌ Error checking if page exists:', checkError);
+      return { success: false, error: `Failed to check page existence: ${checkError.message}` };
+    }
+
+    if (!existingPage) {
+      console.error('❌ Page not found:', pageId);
+      return { success: false, error: 'Page not found' };
+    }
+
+    console.log('✅ Page exists, proceeding with deletion:', existingPage);
+
+    // Delete related data first to avoid foreign key constraints
+    console.log('🔄 Deleting related document blocks...');
+    const { error: blockDeleteError } = await supabase
+      .from('document_blocks')
+      .delete()
+      .eq('page_id', pageId);
+
+    if (blockDeleteError) {
+      console.warn('⚠️ Error deleting document blocks (might be normal):', blockDeleteError);
+    }
+
+    console.log('🔄 Deleting related kanban columns...');
+    const { error: columnDeleteError } = await supabase
+      .from('kanban_columns')
+      .delete()
+      .eq('page_id', pageId);
+
+    if (columnDeleteError) {
+      console.warn('⚠️ Error deleting kanban columns (might be normal):', columnDeleteError);
+    }
+
+    console.log('🔄 Deleting related moodboard items...');
+    const { error: moodboardDeleteError } = await supabase
+      .from('moodboard_items')
+      .delete()
+      .eq('page_id', pageId);
+
+    if (moodboardDeleteError) {
+      console.warn('⚠️ Error deleting moodboard items (might be normal):', moodboardDeleteError);
+    }
+
+    // Now delete the page itself
+    console.log('🔄 Deleting page record...');
+    const { error, data } = await supabase
       .from('pages')
       .delete()
       .eq('id', pageId)
+      .select(); // Add select to see what was deleted
+
+    console.log('🔍 Checking if page still exists after deletion...');
+    const { data: checkAfterDelete } = await supabase
+      .from('pages')
+      .select('id')
+      .eq('id', pageId);
+    
+    console.log('🔍 Page existence check result:', checkAfterDelete?.length === 0 ? 'DELETED' : 'STILL EXISTS');
 
     if (error) {
-      console.error('Error deleting page:', error)
-      return { success: false, error: error.message }
+      console.error('❌ Error deleting page:', error);
+      return { success: false, error: error.message };
     }
 
-    return { success: true }
+    console.log('✅ Page deletion result:', data);
+    console.log('✅ Successfully deleted page:', pageId);
+    return { success: true };
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-    console.error('Error deleting page:', err)
-    return { success: false, error: errorMessage }
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    console.error('❌ Exception while deleting page:', err);
+    return { success: false, error: errorMessage };
   }
 }
 

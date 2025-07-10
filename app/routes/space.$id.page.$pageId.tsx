@@ -66,17 +66,17 @@ export default function SpacePage() {
   };
 
   if (currentPage.type === "kanban") {
-    return <KanbanEditor pageId={pageId!} />;
+    return <KanbanEditor key={pageId} pageId={pageId!} />;
   }
 
   if (currentPage.type === "moodboard") {
-    return <MoodboardEditor pageId={pageId!} />;
+    return <MoodboardEditor key={pageId} pageId={pageId!} />;
   }
 
   if (currentPage.type === "document") {
     return (
       <div className="flex flex-col items-start justify-center h-full w-full">
-        <DocumentEditor pageId={pageId!} />
+        <DocumentEditor key={pageId} pageId={pageId!} />
       </div>
     );
   }

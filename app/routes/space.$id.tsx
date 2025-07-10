@@ -45,16 +45,20 @@ import {
   Settings,
   Lock,
   Columns3,
+  User,
 } from "lucide-react";
 import { ShareSpaceModal } from "~/components/ui/share-space-modal";
 import { SpaceSettingsModal } from "~/components/ui/space-settings-modal";
+import { SpaceTitleModal } from "~/components/ui/space-title-modal";
 import { useSpaceActions } from "~/hooks/use-space-actions";
 import { ThemeToggle } from "~/components/ui/theme-toggle";
+import { useUserName } from "~/hooks/use-user-name";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
 
 function SpaceContent() {
   const {
@@ -69,6 +73,7 @@ function SpaceContent() {
 
   const { handleCreatePage, handleRenamePage, handleDeletePage } =
     useSpaceActions();
+  const { userName } = useUserName();
   const location = useLocation();
 
   // State for rename dialog
@@ -186,9 +191,11 @@ function SpaceContent() {
                 </Tooltip>
               </div>
             </div>
-            <p className="text-lg font-bold text-muted-foreground pl-2 mt-4">
-              {space.title || "Untitled Space"}
-            </p>
+            <SpaceTitleModal>
+              <button className="text-lg font-bold text-muted-foreground pl-2 mt-4 hover:text-foreground transition-colors cursor-pointer text-left">
+                {space.title || "Untitled Space"}
+              </button>
+            </SpaceTitleModal>
           </SidebarHeader>
 
           <SidebarContent>
@@ -199,52 +206,68 @@ function SpaceContent() {
                     No pages yet
                   </p>
                 ) : (
-                  pages.map((page) => {
-                    const pagePath = `/space/${space.id}/page/${page.id}`;
-                    const isActive = location.pathname === pagePath;
+                  <AnimatePresence>
+                    {pages.map((page) => {
+                      const pagePath = `/space/${space.id}/page/${page.id}`;
+                      const isActive = location.pathname === pagePath;
 
-                    return (
-                      <ContextMenu key={page.id}>
-                        <ContextMenuTrigger>
-                          <Button
-                            variant={isActive ? "secondary" : "ghost"}
-                            className="w-full justify-start"
-                            asChild
-                          >
-                            <Link to={pagePath}>
-                              <span className="mr-2">
-                                {page.type === "document" && (
-                                  <FileText className="h-4 w-4" />
-                                )}
-                                {page.type === "moodboard" && (
-                                  <Image className="h-4 w-4" />
-                                )}
-                                {page.type === "kanban" && (
-                                  <Columns3 className="h-4 w-4" />
-                                )}
-                              </span>
-                              {page.title}
-                            </Link>
-                          </Button>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent>
-                          <ContextMenuItem
-                            onClick={() => handleRenameStart(page)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Rename
-                          </ContextMenuItem>
-                          <ContextMenuItem
-                            variant="destructive"
-                            onClick={() => handleDeleteClick(page.id)}
-                          >
-                            <Trash className="h-4 w-4 mr-2" />
-                            Delete
-                          </ContextMenuItem>
-                        </ContextMenuContent>
-                      </ContextMenu>
-                    );
-                  })
+                      return (
+                        <motion.div
+                          key={page.id}
+                          layout
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 20,
+                          }}
+                        >
+                          <ContextMenu>
+                            <ContextMenuTrigger>
+                              <Button
+                                variant={isActive ? "secondary" : "ghost"}
+                                className="w-full justify-start"
+                                asChild
+                              >
+                                <Link to={pagePath}>
+                                  <span className="mr-2">
+                                    {page.type === "document" && (
+                                      <FileText className="h-4 w-4" />
+                                    )}
+                                    {page.type === "moodboard" && (
+                                      <Image className="h-4 w-4" />
+                                    )}
+                                    {page.type === "kanban" && (
+                                      <Columns3 className="h-4 w-4" />
+                                    )}
+                                  </span>
+                                  {page.title}
+                                </Link>
+                              </Button>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                              <ContextMenuItem
+                                onClick={() => handleRenameStart(page)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Rename
+                              </ContextMenuItem>
+                              <ContextMenuItem
+                                variant="destructive"
+                                onClick={() => handleDeleteClick(page.id)}
+                              >
+                                <Trash className="h-4 w-4 mr-2" />
+                                Delete
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -279,18 +302,24 @@ function SpaceContent() {
           </SidebarContent>
 
           <SidebarFooter>
-            <div className="flex items-center justify-between text-muted-foreground">
-              <p className="text-xs">Space ID: {space.id}</p>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <SpaceSettingsModal>
-                    <Button variant="ghost" size="icon" className="h-6 w-6">
-                      <Settings className="h-3 w-3" />
-                    </Button>
-                  </SpaceSettingsModal>
-                </TooltipTrigger>
-                <TooltipContent>Space Settings</TooltipContent>
-              </Tooltip>
+            <div className="flex flex-col gap-2 text-muted-foreground">
+              <div className="flex items-center justify-between">
+                <p className="text-xs">Space ID: {space.id}</p>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SpaceSettingsModal>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                    </SpaceSettingsModal>
+                  </TooltipTrigger>
+                  <TooltipContent>User Settings</TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-center gap-2">
+                <User className="h-3 w-3" />
+                <span className="text-xs flex-1 truncate">{userName}</span>
+              </div>
             </div>
           </SidebarFooter>
         </Sidebar>
@@ -299,10 +328,16 @@ function SpaceContent() {
           {/* Mobile sidebar trigger - only visible on small screens */}
           <div className="flex md:hidden items-center gap-2 p-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <SidebarTrigger className="h-8 w-8 shrink-0" />
-            <h2 className="text-lg font-semibold truncate flex-1">
-              {space.title || "Untitled Space"}
-            </h2>
+            <SpaceTitleModal>
+              <button className="text-lg font-semibold truncate flex-1 hover:text-muted-foreground transition-colors cursor-pointer text-left">
+                {space.title || "Untitled Space"}
+              </button>
+            </SpaceTitleModal>
             <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 mr-2 px-2 py-1 bg-muted rounded-sm">
+                <User className="h-3 w-3" />
+                <span className="text-xs max-w-20 truncate">{userName}</span>
+              </div>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <ShareSpaceModal>
@@ -321,11 +356,11 @@ function SpaceContent() {
                     </Button>
                   </SpaceSettingsModal>
                 </TooltipTrigger>
-                <TooltipContent>Space Settings</TooltipContent>
+                <TooltipContent>User Settings</TooltipContent>
               </Tooltip>
             </div>
           </div>
-          
+
           <Outlet />
         </SidebarInset>
       </div>

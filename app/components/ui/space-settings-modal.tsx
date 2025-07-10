@@ -8,77 +8,55 @@ import {
 } from "./dialog";
 import { Input } from "./input";
 import { Button } from "./button";
-import { useSpaceSettings } from "~/hooks/use-space-settings";
-import { useSpace } from "~/contexts/space-context";
-import { Eye, EyeOff } from "lucide-react";
+import { User } from "lucide-react";
+import { useUserName } from "~/hooks/use-user-name";
 
 interface SpaceSettingsModalProps {
   children: React.ReactNode;
 }
 
 export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
-  const { space } = useSpace();
   const [isOpen, setIsOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  // const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [tempUserName, setTempUserName] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
 
-  const { updateTitle, /* updatePassword, */ isLoading, error, clearError } =
-    useSpaceSettings(space?.id || "");
+  const { userName, saveUserName, getCurrentUserName } = useUserName();
 
-  // Initialize form values when modal opens or space changes
+  // Initialize temp name when modal opens
   useEffect(() => {
-    if (space && isOpen) {
-      setTitle(space.title || "");
-      // setPassword(space.password || "");
+    if (isOpen) {
+      setTempUserName(userName);
       setHasChanges(false);
     }
-  }, [space, isOpen]);
+  }, [isOpen, userName]);
 
   // Track changes
   useEffect(() => {
-    if (space) {
-      const titleChanged = title !== (space.title || "");
-      // const passwordChanged = password !== (space.password || "");
-      setHasChanges(titleChanged /* || passwordChanged */);
-    }
-  }, [title, /* password, */ space]);
+    const currentUserName = getCurrentUserName();
+    setHasChanges(tempUserName !== currentUserName);
+  }, [tempUserName, getCurrentUserName]);
 
   const handleSave = async () => {
-    if (!space) return;
+    // Save user name using the hook
+    saveUserName(tempUserName);
 
-    clearError();
-    let success = true;
+    setIsOpen(false);
+    setHasChanges(false);
 
-    // Update title if changed
-    if (title !== (space.title || "")) {
-      const titleSuccess = await updateTitle(title);
-      if (!titleSuccess) success = false;
-    }
-
-    // Update password if changed
-    // if (password !== (space.password || "")) {
-    //   const passwordSuccess = await updatePassword(password || undefined);
-    //   if (!passwordSuccess) success = false;
-    // }
-
-    if (success) {
-      setIsOpen(false);
-      setHasChanges(false);
-      // Refresh the page to reflect changes
-      window.location.reload();
-    }
+    // TODO: In the future, this will sync with the server for collaboration
+    console.log("User name saved:", tempUserName);
   };
 
   const handleCancel = () => {
-    if (space) {
-      setTitle(space.title || "");
-      // setPassword(space.password || "");
-      setHasChanges(false);
-    }
-    clearError();
+    setTempUserName(userName);
+    setHasChanges(false);
     setIsOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && hasChanges) {
+      handleSave();
+    }
   };
 
   return (
@@ -86,37 +64,36 @@ export function SpaceSettingsModal({ children }: SpaceSettingsModalProps) {
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Space Settings</DialogTitle>
+          <DialogTitle>User Settings</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">
-              Space Title
+            <label
+              htmlFor="userName"
+              className="text-sm font-medium flex items-center gap-2"
+            >
+              <User className="h-4 w-4" />
+              Your Name
             </label>
             <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter space title"
+              id="userName"
+              value={tempUserName}
+              onChange={(e) => setTempUserName(e.target.value)}
+              placeholder="Enter your name"
+              onKeyDown={handleKeyDown}
+              autoFocus
             />
+            <p className="text-xs text-muted-foreground">
+              This will be used for collaboration features in the future.
+            </p>
           </div>
 
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
-              {error}
-            </div>
-          )}
-
           <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={isLoading}
-            >
+            <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!hasChanges || isLoading}>
-              {isLoading ? "Saving..." : "Save Changes"}
+            <Button onClick={handleSave} disabled={!hasChanges}>
+              Save Changes
             </Button>
           </div>
         </div>

@@ -24,35 +24,28 @@ import { MarkdownKit } from "~/components/markdown-kit";
 import { Button } from "~/components/ui/button";
 import { Save, RefreshCw } from "lucide-react";
 import { useDocumentData } from "~/hooks/use-document-data";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { YjsPlugin } from "@platejs/yjs/react";
 import { RemoteCursorOverlay } from "~/components/ui/remote-cursor-overlay";
 
 import { useMounted } from "~/hooks/use-mounted"; // Or your own mounted check
+import { useUserName } from "~/hooks/use-user-name";
 
 interface DocumentEditorProps {
   pageId: string;
-  autoSaveEnabled?: boolean;
 }
 
-export default function DocumentEditor({
-  pageId,
-  autoSaveEnabled = true,
-}: DocumentEditorProps) {
-  const {
-    value,
-    isLoading,
-    error,
-    isSaving,
-    lastSaved,
-    setValue,
-    saveNow,
-    refetch,
-  } = useDocumentData({
-    pageId,
-    autoSaveEnabled,
-    autoSaveDelayMs: 2000,
-  });
+export default function DocumentEditor({ pageId }: DocumentEditorProps) {
+  console.log("🔄 DocumentEditor render with pageId:", pageId);
+
+  const { value, isLoading, error, isSaving, saveWithValue, refetch } =
+    useDocumentData({
+      pageId,
+    });
+
+  const { userName } = useUserName();
+  const yjsInitialized = useRef(false);
+  const initialValueRef = useRef<Value | null>(null);
 
   const editor = usePlateEditor({
     plugins: [
@@ -75,7 +68,7 @@ export default function DocumentEditor({
           // Configure local user cursor appearance
           cursors: {
             data: {
-              name: "Anonymous", // Replace with dynamic user name
+              name: userName || "Anonymous", // Replace with dynamic user name
               color: "#aabbcc", // Replace with dynamic user color
             },
           },
@@ -99,22 +92,73 @@ export default function DocumentEditor({
 
   const mounted = useMounted();
 
+  // Store initial value when first loaded
+  useEffect(() => {
+    if (!isLoading && !initialValueRef.current) {
+      initialValueRef.current = value;
+      console.log("💾 Stored initial value:", JSON.stringify(value, null, 2));
+    }
+  }, [isLoading, value]);
+
   useEffect(() => {
     // Ensure component is mounted and editor is ready
-    if (!mounted) return;
+    console.log("mounted", mounted);
+    console.log("isLoading", isLoading);
+    console.log("value", value);
+    console.log("editor", editor.children);
+    console.log("yjsInitialized.current", yjsInitialized.current);
+    if (!mounted || isLoading || yjsInitialized.current) return;
 
-    // Initialize Yjs connection, sync document, and set initial editor state
+    const initialValue = initialValueRef.current || value;
+    console.log("🚀 Initializing YJS for pageId:", pageId);
+    console.log("📝 Database value:", JSON.stringify(initialValue, null, 2));
+
+    // Initialize Yjs connection WITHOUT initial value to let it sync first
     editor.getApi(YjsPlugin).yjs.init({
       id: pageId, // Unique identifier for the Yjs document
-      value: value, // Initial content if the Y.Doc is empty
     });
 
-    // Clean up: Destroy connection when component unmounts
-    return () => {
-      editor.getApi(YjsPlugin).yjs.destroy();
-    };
-  }, [editor, mounted]);
+    yjsInitialized.current = true;
+    console.log("✅ YJS initialized (no initial value) for pageId:", pageId);
 
+    // Wait for YJS to sync, then check if we need to set initial content
+    setTimeout(() => {
+      const currentContent = editor.children;
+      console.log(
+        "🔍 Content after YJS sync:",
+        JSON.stringify(currentContent, null, 2)
+      );
+
+      // Check if editor is empty (just default empty paragraph)
+      const isEmpty =
+        currentContent.length === 1 &&
+        currentContent[0].children &&
+        currentContent[0].children.length === 1 &&
+        currentContent[0].children[0].text === "";
+
+      console.log("📝 Editor is empty after sync:", isEmpty);
+
+      if (isEmpty && initialValue.length > 0) {
+        console.log("🔧 Setting initial value from database");
+        editor.tf.setValue(initialValue);
+      } else {
+        console.log("✅ Using synced content from other users");
+      }
+    }, 200); // Increased delay to ensure sync completes
+
+    // Clean up: Save current content and destroy connection when component unmounts
+    return () => {
+      // Save current editor content directly (avoid race condition)
+      const currentEditorContent = editor.children;
+      saveWithValue(currentEditorContent);
+
+      editor.getApi(YjsPlugin).yjs.destroy();
+      yjsInitialized.current = false;
+      initialValueRef.current = null;
+    };
+  }, [editor, mounted, isLoading, pageId, saveWithValue]);
+
+  /*
   // Update editor content when value loads from database
   useEffect(() => {
     if (!isLoading && value && value.length > 0) {
@@ -125,15 +169,13 @@ export default function DocumentEditor({
       }
     }
   }, [value, isLoading]); // Note: not including editor in deps to avoid loops
-
-  // Handle editor changes
-  const handleChange = ({ value: newValue }: { value: Value }) => {
-    setValue(newValue);
-  };
+  */
 
   // Handle manual save
   const handleSave = async () => {
-    const success = await saveNow();
+    // Get current editor content and save it directly
+    const currentEditorContent = editor.children;
+    const success = await saveWithValue(currentEditorContent);
     if (!success && error) {
       // You might want to show a toast notification here
       console.error("Save failed:", error);
@@ -195,7 +237,7 @@ export default function DocumentEditor({
 
   return (
     <div className="flex flex-col h-full w-full">
-      <Plate editor={editor} onChange={handleChange}>
+      <Plate editor={editor}>
         <FixedToolbar className="justify-start rounded-t-lg">
           {/* Element Toolbar Buttons */}
           <ToolbarButton onClick={() => editor.tf.h1.toggle()}>
